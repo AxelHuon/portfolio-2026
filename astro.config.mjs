@@ -43,26 +43,17 @@ export default defineConfig({
   trailingSlash: "never",
   build: { format: "file" },
   prefetch: { prefetchAll: true, defaultStrategy: "hover" },
-  // Polices : une entrée par famille, servie depuis le site (/_astro/fonts), préchargée par <Font> dans Base.astro,
-  // avec une police de repli aux mêmes métriques (pas de saut à l'arrivée de la police). Fontshare (Indian Type
-  // Foundry, licence ITF FFL : gratuite, y compris pour un usage commercial) : Switzer pour le texte, une grotesque
-  // suisse sobre ; Satoshi pour le nom et les titres, une grotesque géométrique (choix d'Axel, après Panchang et
-  // Zodiak écartés le 11 novembre 2026).
-  // Les variables --font-* sont reliées dans src/styles/global.css. Voir le README.
+  // Police : une seule famille sur tout le site, Satoshi (Fontshare, Indian Type Foundry, licence ITF FFL : gratuite,
+  // y compris pour un usage commercial ; choix d'Axel le 11 novembre 2026), une grotesque géométrique. Servie depuis
+  // le site (/_astro/fonts), préchargée par <Font> dans Base.astro, avec une police de repli aux mêmes métriques (pas
+  // de saut à son arrivée). 400 pour le texte, 500 pour les titres, le nom et les liens. La variable --font-body est
+  // reliée dans src/styles/global.css (font-sans et font-display). Voir le README.
   fonts: [
     {
       provider: fontProviders.fontshare(),
-      name: "Switzer",
+      name: "Satoshi",
       cssVariable: "--font-body",
       weights: [400, 500],
-      styles: ["normal"],
-      fallbacks: ["sans-serif"],
-    },
-    {
-      provider: fontProviders.fontshare(),
-      name: "Satoshi",
-      cssVariable: "--font-heading",
-      weights: [500],
       styles: ["normal"],
       fallbacks: ["sans-serif"],
     },

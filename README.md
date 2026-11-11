@@ -10,7 +10,7 @@ Ce que le site a d'office :
 - le SEO (titres, descriptions, canonical, Open Graph, JSON-LD, sitemap, robots.txt, redirections 301) ;
 - un cycle de vie JS prêt pour GSAP et Lenis avec le ClientRouter (transitions entre pages, nettoyage par page) ;
 - un loader au premier chargement, et le hero WebGL de l'accueil (three.js chargé à la demande) ;
-- l'accessibilité de base (lien d'évitement, focus après navigation, menu mobile au clavier, mouvement réduit) ;
+- l'accessibilité de base (lien d'évitement, focus après navigation, menu au clavier, mouvement réduit) ;
 - les en-têtes de sécurité et de cache, et un contrôle des budgets (JS, CSS, polices, liens, images).
 
 ## Stack
@@ -20,7 +20,7 @@ Ce que le site a d'office :
 | Site | Astro 7.4.2 (statique, ClientRouter), TypeScript 6.0.3, Tailwind 4.3.3 |
 | Animation | GSAP 3.15 (plugins compris, licence gratuite y compris commerciale), Lenis 1.3.26 |
 | WebGL | three.js 0.186.1 (`@types/three` 0.186.0), seulement dans le chunk différé du hero |
-| Polices | Fontshare : Switzer (texte) et Satoshi (nom, titres), servies depuis le site |
+| Police | Fontshare : Satoshi (400, 500) partout, servie depuis le site |
 | Hébergement | Cloudflare Workers, assets statiques (Workers Builds à chaque push sur `main`) |
 | Outils | Node 24 (`.node-version`), pnpm 10 (`packageManager`), versions exactes (`pnpm add -E`) |
 
@@ -60,14 +60,14 @@ public/_headers             cache immutable des fichiers versionnés, CSP et en-
 src/data/site.ts            réglages en code : identité, navigation, SEO, contact, mentions, micro-textes, JSON-LD
 src/data/content.ts         le contenu (accueil, à propos, projets) : importé par les .astro seulement
 src/layouts/Base.astro      le layout : SEO, polices, loader, ClientRouter, header, footer, démarrage des scripts
-src/components/             Header (menu mobile), Footer, Picture, ProjectCard, ExternalLink
+src/components/             Header (pilule « Menu » et petit panneau), Footer, Picture, ProjectCard, ExternalLink
 src/pages/                  accueil, about, projects et fiches, contact, legal (mentions légales), 404, robots.txt, manifeste
 src/styles/global.css       Tailwind 4, tokens du projet, loader, état caché avant une entrée, base accessible
 src/scripts/app.ts          cycle de vie avec le ClientRouter
 src/scripts/transition.ts   transition entre les pages (fondu neutre)
 src/scripts/pages/          un module par page (init → destroy), chargé à la demande
 src/scripts/gl/hero-flow.ts le hero WebGL (three.js), importé par pages/home.ts
-src/scripts/chrome/         menu mobile accessible, loader du premier chargement
+src/scripts/chrome/         menu (panneau qui apparaît en fondu flou), loader du premier chargement
 src/scripts/lib/            Lenis, courbes GSAP, plugins, media queries, préchargement, annonces
 scripts/assets/             images en AVIF et WebP, icônes, image de partage
 scripts/check-budgets.mjs   budgets et structure du build
@@ -104,31 +104,33 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   pour le loader et le hero sans WebGL ; positions des taches à changer aux deux endroits. La page est d'un bleu
   presque noir (`#06122b`), l'accent bleu ciel (`#9fdcff`) marque les états (barre du loader, lien courant, focus,
   sélection). `--color-background` = `site.themeColor` (barre du navigateur, manifeste, fond des icônes).
-- **Polices** : l'API Fonts d'Astro (`fonts` dans `astro.config.mjs`), fournisseur `fontshare`. Astro télécharge les
-  polices au build, les sert depuis `/_astro/fonts` (cache immutable, CSP `font-src 'self'`), et `<Font>` (Base.astro)
-  les précharge avec une police de repli aux mêmes métriques : pas de saut à leur arrivée. Switzer (400, 500) pour le
-  texte (`font-sans`), Satoshi (500) pour le nom et les titres (`font-display`). Changer de police : `name` (et
-  `weights`) dans `astro.config.mjs`, la graisse préchargée dans Base.astro ; plafond de 64 Kio de polices
-  préchargées dans `check:budgets`.
+- **Police** : l'API Fonts d'Astro (`fonts` dans `astro.config.mjs`), fournisseur `fontshare`. Astro télécharge la
+  police au build, la sert depuis `/_astro/fonts` (cache immutable, CSP `font-src 'self'`), et `<Font>` (Base.astro)
+  la précharge avec une police de repli aux mêmes métriques : pas de saut à son arrivée. Satoshi partout : 400 pour le
+  texte, 500 pour le nom, les titres et les liens (`font-sans`, et `font-display` qui en est l'alias). Changer de
+  police : `name` (et `weights`) dans `astro.config.mjs`, les graisses préchargées dans Base.astro ; plafond de
+  64 Kio de polices préchargées dans `check:budgets`.
 
 ## Le hero et le loader
 
-- **Loader** (`#loader` dans Base.astro, `chrome/loader.ts`) : sur un aplat bleu (`--color-loader`), le nom et le
-  métier en haut à gauche, « Portfolio © année » en haut à droite (là où arriveront le nom et le menu du header) ; en
-  bas à gauche, un grand compteur à la taille et à la place du nom du hero ; tout en bas, une ligne qui se remplit ;
-  derrière, des stries de lumière traversent l'écran (pose longue de nuit), de plus en plus nombreuses avec la
-  progression, et filent à la sortie (`STREAKS` dans `loader.ts`).
-  Affiché par le CSS dès la première peinture, sous `html.js` et au premier chargement seulement. La progression monte
-  seule jusqu'à 86, puis attend que la page soit prête (`PageInstance.ready`, plafonné à 6 s) et les polices. À 100,
-  le chiffre et les textes sortent par le haut et le loader se dissout ; `afterLoader()` résout à ce moment : le
-  module de page y cale son entrée. Filet CSS : masqué à 6 s si le JS ne prend pas la main.
+- **Loader** (`#loader` dans Base.astro, `chrome/loader.ts`) : la mise au point, sans écran à part. Un aplat bleu
+  (`--color-loader`) le temps que la page soit prête (`PageInstance.ready`, plafonné à 6 s), puis il s'efface sur la
+  page : sur l'accueil, le hero y est très flou, sombre et agrandi, et la progression du chargement en fait la mise
+  au point et le dézoom autour du visage (`onLoaderProgress` → `home.ts`, `DEZOOM` → `setIntro` de `hero-flow.ts`). Par-dessus, le nom à la place exacte de celui du
+  header (qui le relaie sans saut) et, en bas, une barre de chargement sur toute la largeur, son pourcentage en
+  grand au-dessus, qui suit la tête de la barre. La progression monte
+  seule jusqu'à 86, puis attend la page et les polices ; à 100, l'image est nette, le nom et la barre s'effacent
+  et `afterLoader()` résout : le module de page y cale son entrée (le nom du hero lettre par lettre, le métier, le
+  menu). Affiché par le CSS dès la première peinture, sous `html.js` et au premier chargement seulement. Filet CSS :
+  masqué à 6 s si le JS ne prend pas la main.
 - **Hero** (`pages/home.ts` → `gl/hero-flow.ts`) : le `<picture>` est toujours servi ; un canvas WebGL se pose dessus,
   au même cadrage (`home.focus` : `object-position` et shader). Deux passes : un champ de vitesse du pointeur
   (flowmap en ping-pong, diffusé pour rester doux, qui s'éteint) puis l'image, le dégradé et le portrait par-dessus
   en mode écran, moyennés le long de ce champ comme une pose longue (la traînée étire l'image sans la colorer). L'entrée est une
-  mise au point : le portrait part flou (spirale dorée de 32 échantillons dans le shader, pas de filtre CSS) et
+  mise au point : le portrait part flou (spirale dorée de 24 échantillons dans le shader, pas de filtre CSS) et
   devient net pendant que le nom monte lettre par lettre à la place du compteur ; l'image recule en place (zoom et
-  rotation de caméra), le métier glisse depuis la droite et, au premier chargement, le header descend du haut
+  rotation de caméra), le métier glisse depuis la droite. Au premier chargement, c'est la progression du loader qui
+  fait la mise au point, sans zoom ; à la fin, le nom, le métier et le menu (qui descend du haut) entrent
   (`pages/home.ts`, `INTRO`, `ZOOM_FROM`). Rien ne bouge ensuite sans la souris. Pendant le flou, le canvas tourne à mi-résolution (`INTRO_SCALE`) : à pleine résolution, la
   transition décrochait. La boucle
   ne tourne que pendant un geste ou l'entrée, puis s'endort sur une image nette ; rien ne tourne hors de l'écran. Les

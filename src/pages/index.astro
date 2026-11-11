@@ -1,6 +1,7 @@
 ---
 /*
- * Accueil : le hero, portrait plein écran passé sous le header, puis les projets récents.
+ * Accueil : le hero, portrait plein écran passé sous le header (les projets récents, retirés pour l'instant à la
+ * demande d'Axel le 11 novembre 2026, restent sur /projects).
  * Le <picture> du portrait est toujours servi : seul sans JS, sans WebGL ou en mouvement réduit ; sinon
  * src/scripts/pages/home.ts pose dessus un canvas WebGL (gl/hero-flow.ts) au même cadrage. home.focus règle ce cadrage
  * aux deux endroits : object-position ici, data-focus-x / -y pour le shader.
@@ -8,15 +9,12 @@
  * une à une à l'entrée. Les lecteurs d'écran lisent le nom d'un bloc (sr-only), les lettres leur sont cachées.
  */
 import Picture from "../components/Picture.astro";
-import ProjectCard from "../components/ProjectCard.astro";
-import { home, projects } from "../data/content";
-import { site, uiText } from "../data/site";
+import { home } from "../data/content";
+import { site } from "../data/site";
 import Base from "../layouts/Base.astro";
 
 // le portrait couvre toute la largeur de l'écran
 const HERO_SIZES = "100vw";
-const CARD_SIZES = "(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw";
-const latest = projects.slice(0, 3);
 const objectPosition = `object-position:${home.focus.x * 100}% ${home.focus.y * 100}%`;
 const nameLines = site.name.split(" ");
 ---
@@ -57,24 +55,6 @@ const nameLines = site.name.split(" ");
       </div>
     </div>
   </section>
-
-  {
-    latest.length > 0 && (
-      <section aria-labelledby="latest" class="mx-auto mt-24 flex w-full max-w-page flex-col gap-8 px-gutter">
-        <h2 id="latest" class="font-display text-2xl font-medium">
-          {uiText.recentProjects}
-        </h2>
-        <div class="grid gap-x-6 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
-          {latest.map((project) => <ProjectCard project={project} sizes={CARD_SIZES} heading="h3" />)}
-        </div>
-        <p>
-          <a href="/projects" class="underline underline-offset-4">
-            {uiText.allProjects}
-          </a>
-        </p>
-      </section>
-    )
-  }
 </Base>
 
 <style>

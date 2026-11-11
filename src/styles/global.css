@@ -35,13 +35,14 @@
   --color-mesh-light: #5f8fd8;
   --color-mesh-warm: #eae1c1;
 
-  /* Polices (astro.config.mjs, fonts ; posées par <Font> dans Base.astro, avec leur repli) : Switzer pour le texte,
-     Satoshi pour le nom et les titres (font-display, graisse 500 seulement). Le token et la variable d'Astro ne
-     portent pas le même nom. */
+  /* Police (astro.config.mjs, fonts ; posée par <Font> dans Base.astro, avec son repli) : Satoshi partout, en 400
+     pour le texte et en 500 pour le nom, les titres et les liens. font-display reste un alias, pour les titres. Le token
+     et la variable d'Astro ne portent pas le même nom. */
   --font-sans: var(--font-body);
-  --font-display: var(--font-heading);
+  --font-display: var(--font-body);
 
-  /* Marge latérale des pages, largeur maximale du contenu, hauteur du header (le hero de l'accueil passe dessous) */
+  /* Marge latérale des pages, largeur maximale du contenu, hauteur du header, réservée en haut de main (le hero de
+     l'accueil passe dessous) */
   --spacing-gutter: clamp(1rem, 4vw, 3rem);
   --spacing-header: 4.5rem;
   --container-page: 80rem;
@@ -65,8 +66,10 @@
     flex-direction: column;
     min-height: 100svh;
   }
+  /* le header est posé en haut de page (absolu) : sa hauteur est réservée en haut de main */
   main {
     flex: 1;
+    padding-top: var(--spacing-header);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]) {
@@ -115,11 +118,11 @@
   /* Loader du premier chargement (Base.astro, src/scripts/chrome/loader.ts) : sous html.js, et seulement tant que
      html[data-kind] est absent ou « first » (app.ts pose « nav » sur les pages suivantes). Filet : masqué à 6 s si
      le JS n'a pas pris la main (loader.ts annule cette animation).
-     (11 novembre 2026) En haut, le nom et le métier à gauche (là où le header mettra le nom), « Portfolio © année » à
-     droite (là où viendra le menu) ; en bas à gauche, le grand compteur, à la taille et à la place du nom du hero ;
-     tout en bas, une ligne qui se remplit. Derrière, des stries de lumière traversent l'écran comme sur une pose longue
-     de nuit, de plus en plus nombreuses avec la progression (créées par loader.ts). À 100 %, elles filent, le chiffre
-     et les textes sortent par le haut et le loader se dissout sur le hero flou, qui fait sa mise au point. */
+     La mise au point (choix d'Axel, 11 novembre 2026) : pas d'écran à part. Un aplat bleu le temps que la page soit
+     prête, puis il s'efface sur l'accueil très flou et sombre, que la progression met au point (loader.ts → home.ts →
+     hero-flow.ts). Par-dessus, le nom à la place exacte de celui du header (même police, même graisse, même
+     position : il s'y substitue sans saut) et, en bas, une barre de chargement sur toute la largeur, son pourcentage
+     en grand au-dessus, qui suit la tête de la barre (loader.ts). */
   .loader {
     display: none;
   }
@@ -128,94 +131,66 @@
     position: fixed;
     inset: 0;
     z-index: 90;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    overflow: hidden;
-    padding: 0 var(--spacing-gutter) clamp(1.5rem, 6vh, 4rem);
-    background: var(--color-loader);
+    display: block;
     color: var(--color-foreground);
     animation: loader-safety 6s step-end forwards;
   }
-  /* les stries, sous le texte : une ligne fine, sa tête lumineuse à droite (elles vont vers la droite) */
-  .loader-streaks {
+  .loader-bg {
     position: absolute;
     inset: 0;
-    overflow: hidden;
-    pointer-events: none;
+    background: var(--color-loader);
   }
-  .loader-streak {
+  /* le nom du header, à sa place exacte (Header.astro, .site-name : marge --spacing-gutter, centré dans
+     --spacing-header, 500, 1.0625rem) */
+  .loader-name {
     position: absolute;
     top: 0;
-    left: 0;
-    height: 1px;
-    border-radius: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--color-foreground) 55%, transparent) 70%,
-      var(--color-foreground)
-    );
-  }
-  .loader-streak-accent {
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 55%, transparent) 70%, var(--color-accent));
-  }
-  .loader-top,
-  .loader-count {
-    position: relative;
-    z-index: 1;
-  }
-  .loader-top {
+    left: var(--spacing-gutter);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    min-height: var(--spacing-header);
-  }
-  .loader-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    font-size: 0.9375rem;
-    line-height: 1.25;
-  }
-  .loader-meta-end {
-    text-align: right;
-  }
-  .loader-strong {
-    font-family: var(--font-display);
+    height: var(--spacing-header);
     font-weight: 500;
+    font-size: 1.0625rem;
     letter-spacing: -0.01em;
   }
-  .loader-dim {
-    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
-  }
-  /* le masque du chiffre, avec de la marge au-dessus : il ne rogne pas le haut des chiffres */
-  .loader-count {
-    grid-row: 3;
-    align-self: end;
-    overflow: clip;
-    padding-top: 0.1em;
-    margin-top: -0.1em;
-    font-family: var(--font-display);
-    font-weight: 500;
-    font-size: clamp(4rem, 14vw, 14rem);
-    line-height: 0.88;
-    letter-spacing: -0.045em;
-    font-variant-numeric: tabular-nums;
-  }
-  .loader-digits {
-    display: block;
-  }
-  /* la progression, tout en bas, sur toute la largeur */
-  .loader-line {
+  /* la barre, entre les marges, en bas ; lisible sur l'aplat comme sur l'image floue */
+  .loader-progress {
     position: absolute;
-    z-index: 1;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 2px;
-    background: var(--color-accent);
+    right: var(--spacing-gutter);
+    bottom: clamp(1.5rem, 6vh, 4rem);
+    left: var(--spacing-gutter);
+  }
+  .loader-track {
+    position: relative;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-foreground) 22%, transparent);
+  }
+  .loader-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--color-foreground);
     transform: scaleX(0);
     transform-origin: 0 50%;
+  }
+  /* le pourcentage, au-dessus de la barre ; loader.ts le déplace (transform) avec la tête de la barre */
+  .loader-count {
+    position: absolute;
+    bottom: calc(100% + 0.9rem);
+    left: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.25rem, 4.5vw, 4rem);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .loader-count::after {
+    content: "%";
+    margin-left: 0.06em;
+    opacity: 0.6;
   }
   /* défilement bloqué pendant le loader (posé et retiré par loader.ts : sans JS, jamais bloqué) */
   html.is-loading {

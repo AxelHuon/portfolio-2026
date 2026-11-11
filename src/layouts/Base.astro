@@ -40,8 +40,6 @@ const path = Astro.url.pathname.replace(/(\/index)?(\.html)?\/?$/, "") || "/";
 const canonical = new URL(path, origin).href;
 const ogImage = new URL(image.src, origin).href;
 // « < » échappé : un texte du contenu contenant </script> sortirait du bloc
-// l'année du loader (« Portfolio © 2026 »), prise au build comme celle du footer
-const year = new Date().getFullYear();
 const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.jsonLd)).replace(/</g, "\\u003c");
 ---
 
@@ -74,11 +72,10 @@ const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.js
     <meta name="theme-color" content={site.themeColor} />
     <meta name="color-scheme" content="dark" />
     {
-      /* les polices et leur graisse courante préchargée (crossorigin posé par <Font>) : le texte, et Satoshi, que le
-       loader affiche dès la première peinture */
+      /* la police et ses deux graisses préchargées (crossorigin posé par <Font>) : 400 pour le texte, 500 pour le nom,
+       les titres et le loader, affichés dès la première peinture */
     }
-    <Font cssVariable="--font-body" preload={[{ weight: 400 }]} />
-    <Font cssVariable="--font-heading" preload={[{ weight: 500 }]} />
+    <Font cssVariable="--font-body" preload={[{ weight: 400 }, { weight: 500 }]} />
     {/* ICO pour les vieux navigateurs, PNG 32 px pour les onglets, 192 px pour Google, apple-touch-icon opaque */}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
@@ -112,19 +109,12 @@ const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.js
          src/scripts/chrome/loader.ts. Décoratif : la page dessous reste lisible par les lecteurs d'écran. */
     }
     <div id="loader" class="loader" aria-hidden="true">
-      <div class="loader-streaks" data-loader-streaks></div>
-      <div class="loader-top">
-        <p class="loader-meta" data-loader-meta>
-          <span class="loader-strong">{site.name}</span>
-          <span class="loader-dim">{site.role}</span>
-        </p>
-        <p class="loader-meta loader-meta-end" data-loader-meta>
-          <span class="loader-strong">Portfolio</span>
-          <span class="loader-dim">© {year}</span>
-        </p>
+      <div class="loader-bg" data-loader-bg></div>
+      <p class="loader-name" data-loader-meta>{site.name}</p>
+      <div class="loader-progress" data-loader-meta>
+        <p class="loader-count" data-loader-label><span data-loader-count>0</span></p>
+        <div class="loader-track" data-loader-track><span class="loader-fill" data-loader-fill></span></div>
       </div>
-      <p class="loader-count"><span class="loader-digits" data-loader-count>0</span></p>
-      <span class="loader-line" data-loader-line></span>
     </div>
     <Header page={page} />
     <main id="main" tabindex="-1">

@@ -4,8 +4,10 @@
  * que le nom monte, à la place du compteur du loader. Tout arrive de quelque part : l'image recule en place (zoom et
  * rotation de caméra), le nom monte lettre par lettre, le métier glisse depuis la droite, au premier chargement le
  * header descend du haut. Rien ne bouge ensuite sans la souris.
- * - Premier chargement : ready dit au loader quand le canvas est prêt ; l'entrée attend sa sortie (afterLoader), et
- *   Lenis reste arrêté jusque-là.
+ * - Premier chargement : ready dit au loader quand le canvas est prêt. Le loader s'efface alors sur le hero, très flou
+ *   et sombre, et sa progression en fait la mise au point (onLoaderProgress → setIntro) en même temps qu'un dézoom
+ *   (l'image, agrandie de DEZOOM, revient à sa taille autour du visage). L'entrée du texte et du menu attend sa sortie
+ *   (afterLoader), Lenis aussi. Le nom du header ne s'anime pas : il relaie celui du loader, posé au même endroit.
  * - Navigation : l'entrée part dès que le canvas est prêt ; le texte n'attend pas plus de TEXT_WAIT.
  * - Mouvement réduit (gsap.matchMedia) : ni WebGL ni entrée, le <picture> et le texte restent tels quels.
  * États du hero (data-gl) : « pending » (servi ainsi : sous html.js le portrait est caché, filet CSS à 2,4 s), « on »
@@ -13,7 +15,7 @@
  * Le texte caché ([data-reveal], global.css) est pris en main ici : son filet CSS est annulé, GSAP le montre.
  */
 import { gsap } from "gsap";
-import { afterLoader } from "../chrome/loader";
+import { afterLoader, onLoaderProgress } from "../chrome/loader";
 import type { HeroFlow } from "../gl/hero-flow";
 import { EASE } from "../lib/ease";
 import { createSmoothScroll } from "../lib/lenis";
@@ -38,6 +40,10 @@ const INTRO = {
  * content.ts). À 1,3, elle couvre toujours le hero malgré la rotation, du début à la fin du mouvement.
  */
 const ZOOM_FROM = { scale: 1.3, yPercent: 8, rotation: -3, transformOrigin: "72% 40%" } as const;
+/** La mise au point selon la progression du loader (0 à 1) : encore floue à 86 %, nette seulement à 100 */
+const focusAt = (progress: number) => 1 - progress * progress;
+/** Le dézoom du premier chargement : l'image part agrandie de DEZOOM et revient à sa taille avec la mise au point */
+const DEZOOM = 0.22;
 /** En navigation, le texte n'attend pas le canvas au-delà de ce délai (ms) */
 const TEXT_WAIT = 900;
 
@@ -69,14 +75,20 @@ export function init(kind: Kind): PageInstance {
       const fades = hero.querySelectorAll<HTMLElement>("[data-reveal-fade]");
       // le header ne s'anime qu'au premier chargement (le loader le cache) : en navigation, il est déjà là
       const headerItems =
-        kind === "first"
-          ? document.querySelectorAll<HTMLElement>("#site-header > a, #site-header nav li, #site-header [data-menu-toggle]")
-          : [];
+        kind === "first" ? document.querySelectorAll<HTMLElement>("#site-header [data-header-actions] > *") : [];
       let live = true;
       /** le canvas posé, pour le cleanup (glReady le donne aussi, une fois prêt) */
       const gl: { flow: HeroFlow | null } = { flow: null };
       let loaderGone = false;
       void afterLoader().then(() => (loaderGone = true));
+      // premier chargement : la progression du loader fait la mise au point du hero (dès que le canvas est là) et son
+      // dézoom, autour du visage (focus de content.ts, comme object-position)
+      const origin = `${Number(hero.dataset.focusX ?? 0.5) * 100}% ${Number(hero.dataset.focusY ?? 0.5) * 100}%`;
+      if (kind === "first" && media) gsap.set(media, { scale: 1 + DEZOOM, transformOrigin: origin });
+      const stopFocus = onLoaderProgress((progress) => {
+        gl.flow?.setIntro(focusAt(progress));
+        if (media) gsap.set(media, { scale: 1 + DEZOOM * focusAt(progress) });
+      });
 
       // le texte : filet CSS annulé, caché le temps de l'entrée (seulement la première fois : déjà vu ensuite)
       if (text) text.style.animation = "none";
@@ -85,8 +97,11 @@ export function init(kind: Kind): PageInstance {
         gsap.set(chars, { yPercent: 115, rotation: 8 });
         gsap.set(fades, { opacity: 0, x: 80 });
       }
+      // le recul de caméra et la mise au point : seulement en arrivant d'une autre page (au premier chargement, le loader
+      // pose la photo à sa place, elle ne doit plus bouger)
+      const camera = firstRun && kind !== "first";
       // l'image et le header à leur point de départ (cachés derrière le loader, ou par l'état « pending » du hero)
-      if (firstRun && media) gsap.set(media, ZOOM_FROM);
+      if (camera && media) gsap.set(media, ZOOM_FROM);
       gsap.set(headerItems, { opacity: 0, y: -40 });
 
       const off = () => {
@@ -100,7 +115,9 @@ export function init(kind: Kind): PageInstance {
         // le portrait est déjà à l'écran (filet CSS passé, loader parti) : pas d'entrée, le canvas le remplace net
         const shown = loaderGone && getComputedStyle(img).opacity !== "0";
         const focus = { x: Number(hero.dataset.focusX ?? 0.5), y: Number(hero.dataset.focusY ?? 0.5) };
-        const created = await mod.createHeroFlow({ media, img, focus, intro: firstRun && !shown, onLost: off }).catch(() => null);
+        // flou au départ : au premier chargement (le loader le met au point) et en arrivant d'une autre page (playIntro)
+        const intro = firstRun && !shown;
+        const created = await mod.createHeroFlow({ media, img, focus, intro, onLost: off }).catch(() => null);
         if (!live) {
           created?.destroy();
           return null;
@@ -116,7 +133,9 @@ export function init(kind: Kind): PageInstance {
         if (!live) return;
         context.add(() => {
           // l'image recule en place, comme une caméra, pendant sa mise au point
-          if (firstRun && media) gsap.to(media, { scale: 1, yPercent: 0, rotation: 0, duration: INTRO.zoom, ease: "expo.out" });
+          if (camera && media) gsap.to(media, { scale: 1, yPercent: 0, rotation: 0, duration: INTRO.zoom, ease: "expo.out" });
+          // premier chargement sans loader qui ait tourné (JS arrivé après son filet) : le dézoom n'a pas eu lieu
+          if (kind === "first" && media) gsap.to(media, { scale: 1, duration: INTRO.zoom, ease: "expo.out" });
           if (firstRun && text) {
             gsap.to(chars, {
               yPercent: 0,
@@ -144,6 +163,8 @@ export function init(kind: Kind): PageInstance {
 
       return () => {
         live = false;
+        stopFocus();
+        if (kind === "first" && media) gsap.set(media, { clearProps: "transform" });
         gl.flow?.destroy();
         gl.flow = null;
         off();

@@ -1,11 +1,15 @@
 ---
 /*
- * En-tête : le nom du site, la navigation, et sous 48rem le bouton du menu mobile (src/scripts/chrome/menu.ts).
- * Non persistant : remplacé à chaque navigation, son aria-current vient du serveur. Sans JS, pas de menu mobile :
- * les liens restent affichés (variante no-js de global.css). Hauteur minimale (min-h-header, --spacing-header) : le
- * hero de l'accueil remonte dessous d'autant.
+ * En-tête : le nom du site à gauche, posé en haut de page (absolu : il défile avec elle) ; à droite, fixée pour rester
+ * à portée au défilement, une pilule « Menu » qui déplie un petit panneau (src/scripts/chrome/menu.ts) : les liens, un
+ * filet, l'e-mail et les profils (GitHub, LinkedIn). L'idée d'un menu compact vient d'une référence d'Axel (11 novembre 2026), le
+ * dessin est celui du site : bleu nuit, Satoshi, point bleu ciel pour la page courante.
+ * Le header occupe --spacing-header, réservé en haut de main ; le hero de l'accueil remonte dessous. Le nom du loader
+ * (global.css, .loader-name) se pose exactement sur le sien : à changer ensemble.
+ * Sans JS : pas de menu, les liens restent affichés en ligne (variante no-js de global.css).
+ * Non persistant : remplacé à chaque navigation, son aria-current vient du serveur.
  */
-import { nav, site, uiText, type PageId } from "../data/site";
+import { contact, nav, site, uiText, type PageId } from "../data/site";
 
 interface Props {
   page: PageId;
@@ -15,14 +19,16 @@ const { page } = Astro.props;
 const current = (id: string) => (id === page ? "page" : undefined);
 ---
 
-<header id="site-header" class="relative z-20 flex min-h-header items-center justify-between gap-6 px-gutter">
-  <a href="/" class="font-medium" aria-current={current("home")}>{site.name}</a>
-  <nav aria-label={uiText.mainNav}>
-    <ul class="hidden gap-6 md:flex no-js:flex no-js:flex-wrap">
+<header id="site-header" class="site-header">
+  <a href="/" class="site-name" aria-current={current("home")}>{site.name}</a>
+
+  {/* sans JS seulement : les liens en ligne */}
+  <nav aria-label={uiText.mainNav} class="hidden no-js:block">
+    <ul class="flex flex-wrap gap-x-6 gap-y-2">
       {
         nav.map((item) => (
           <li>
-            <a href={item.href} aria-current={current(item.id)} class="link">
+            <a href={item.href} aria-current={current(item.id)}>
               {item.label}
             </a>
           </li>
@@ -30,53 +36,179 @@ const current = (id: string) => (id === page ? "page" : undefined);
       }
     </ul>
   </nav>
-  <button
-    type="button"
-    class="toggle min-h-11 md:hidden no-js:hidden"
-    data-menu-toggle
-    aria-expanded="false"
-    aria-controls="mobile-menu"
-  >
-    <span class="open">{uiText.menu}</span>
-    <span class="close">{uiText.close}</span>
-  </button>
+
+  <div class="actions" data-header-actions>
+    <button type="button" class="toggle" data-menu-toggle aria-expanded="false" aria-controls="site-menu">
+      <span class="open">{uiText.menu}</span><span class="close">{uiText.close}</span>
+      <span class="icon" aria-hidden="true"><span data-menu-bar></span><span data-menu-bar></span></span>
+    </button>
+  </div>
+
+  <div id="site-menu" class="menu" hidden>
+    <nav aria-label={uiText.mainNav}>
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={item.href} aria-current={current(item.id)} class="menu-link">
+                {item.label}
+                <span class="menu-dot" aria-hidden="true" />
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <div class="menu-foot">
+      <a href={`mailto:${contact.email}`} class="menu-small">{contact.email}</a>
+      {
+        contact.socials.length > 0 && (
+          <ul class="menu-socials">
+            {contact.socials.map((social) => (
+              <li>
+                <a href={social.href} target="_blank" rel="me noopener noreferrer" class="menu-small">
+                  {social.label} ↗<span class="sr-only"> {uiText.newTab}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
 </header>
 
-<div id="mobile-menu" role="dialog" aria-label={uiText.menu} hidden class="fixed inset-0 z-10 bg-background px-gutter pt-24">
-  <nav aria-label={uiText.mainNav}>
-    <ul class="flex flex-col gap-4 text-3xl">
-      {
-        nav.map((item) => (
-          <li>
-            <a href={item.href} aria-current={current(item.id)} class="link block py-1">
-              {item.label}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </nav>
-</div>
-
 <style>
-  .link[aria-current="page"] {
-    text-decoration-line: underline;
-    text-decoration-color: var(--color-accent);
-    text-underline-offset: 0.2em;
+  .site-header {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: var(--spacing-header);
+    padding: 0 var(--spacing-gutter);
+  }
+  .site-name {
+    font-weight: 500;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+  }
+
+  /* la pilule du menu : fixe, en haut à droite, centrée dans la hauteur du header */
+  .actions {
+    position: fixed;
+    top: calc((var(--spacing-header) - 3rem) / 2);
+    right: var(--spacing-gutter);
+    z-index: 30;
+  }
+  :global(html:not(.js)) .actions {
+    display: none;
+  }
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3rem;
+    padding: 0 1.25rem;
+    border-radius: 999px;
+    background: var(--color-foreground);
+    color: var(--color-background);
+    font-weight: 500;
+    font-size: 0.9375rem;
   }
   /* le libellé suit l'état du bouton */
   .toggle[aria-expanded="true"] .open,
   .toggle[aria-expanded="false"] .close {
     display: none;
   }
-  /* menu ouvert : la page dessous ne défile plus */
-  :global(html:has(#mobile-menu[data-open])) {
-    overflow: hidden;
+  /* deux traits, que menu.ts croise en X à l'ouverture */
+  .icon {
+    position: relative;
+    width: 1rem;
+    height: 0.625rem;
   }
-  /* le menu n'existe qu'en petit écran */
-  @media (min-width: 48rem) {
-    #mobile-menu {
-      display: none;
-    }
+  .icon span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+  .icon span:first-child {
+    top: 0;
+  }
+  .icon span:last-child {
+    bottom: 0;
+  }
+
+  /* le panneau : une carte bleu nuit sous la pilule, alignée à droite ; menu.ts la fait apparaître (fondu, flou) */
+  .menu {
+    position: fixed;
+    top: calc((var(--spacing-header) + 3rem) / 2 + 0.5rem);
+    right: var(--spacing-gutter);
+    z-index: 30;
+    width: min(18rem, calc(100vw - 2 * var(--spacing-gutter)));
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+    border-radius: 16px;
+    background: var(--color-background);
+    box-shadow: 0 1.5rem 3rem -1.5rem rgb(0 0 0 / 0.6);
+  }
+  .menu[hidden] {
+    display: none;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+  }
+  .menu-link:hover {
+    background: color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  }
+  .menu-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-accent);
+    opacity: 0;
+  }
+  .menu-link[aria-current="page"] .menu-dot {
+    opacity: 1;
+  }
+  .menu-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.75rem 0.25rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-foreground) 12%, transparent);
+  }
+  .menu-socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+  }
+  .menu-small {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .menu-small:hover {
+    color: var(--color-foreground);
   }
 </style>

@@ -76,12 +76,15 @@ export function projectMeta(project: { title: string; summary: string }): PageMe
 }
 
 export const contact = {
-  email: "contact@example.com",
+  email: "axelhuonpro@gmail.com",
   /** affiché tel quel ; le lien tel: retire les espaces */
   phone: "+33 1 23 45 67 89",
   address: ["1 rue de l'Exemple", "75000 Paris, France"],
-  /** profils publics : liens de Contact (rel="me") et sameAs du JSON-LD */
-  socials: [{ label: "Instagram", href: "https://www.instagram.com/example/" }],
+  /** profils publics : liens de Contact et du menu (rel="me") et sameAs du JSON-LD */
+  socials: [
+    { label: "GitHub", href: "https://github.com/AxelHuon" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/axel-huon-6ba3901ba/" },
+  ],
 } as const;
 
 export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;

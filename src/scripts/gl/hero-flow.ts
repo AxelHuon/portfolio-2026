@@ -125,6 +125,11 @@ export interface HeroFlow {
   readonly introPending: boolean;
   /** l'entrée : la mise au point, du flou au net (durée en s) */
   playIntro(duration: number): gsap.core.Tween;
+  /**
+   * L'entrée pilotée de l'extérieur (la progression du loader) : 1 flou et sombre, 0 net. playIntro n'est alors plus
+   * attendu.
+   */
+  setIntro(value: number): void;
   destroy(): void;
 }
 
@@ -646,6 +651,13 @@ export async function createHeroFlow(options: HeroFlowOptions): Promise<HeroFlow
   return {
     get introPending() {
       return introPending;
+    },
+    setIntro(value) {
+      introPending = false;
+      intro?.kill();
+      intro = null;
+      imageMaterial.uniforms.uIntro.value = Math.min(Math.max(value, 0), 1);
+      wake();
     },
     playIntro(duration) {
       introPending = false;
