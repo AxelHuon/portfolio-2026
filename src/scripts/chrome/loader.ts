@@ -12,6 +12,10 @@
  * prêtes, elle avance encore, lentement, jusqu'à CREEP.to (jamais figée : elle restait plantée à 86 %, retour d'Axel
  * du 11 novembre 2026) ; tout prêt, elle file à 100 sans pause (l'image est nette). Sortie : le nom et le compteur
  * s'effacent, le loader est retiré.
+ * La page ne se révèle sous le loader qu'en haut (moins de REVEAL_ABOVE écran défilé) : rechargée plus bas, le
+ * navigateur rend la position, et la page peut y être claire (les services de l'accueil), où le nom et le compteur,
+ * blancs, ne se verraient plus (retour d'Axel, 11 novembre 2026). L'aplat reste alors jusqu'à la sortie, et s'efface
+ * avec eux.
  * afterLoader() résout à ce moment : le module de page y cale son entrée (le nom du hero, le header). Le défilement est
  * bloqué jusque-là (html.is-loading ; un module qui crée Lenis l'arrête lui-même jusqu'à afterLoader).
  * Mouvement réduit : pas de course, un fondu court.
@@ -30,6 +34,8 @@ const CREEP = { duration: 4.4, to: 0.97 } as const;
 /** En s : l'aplat qui s'efface sur la page prête, la fin de la mise au point, la sortie du nom et du compteur */
 const EXIT = { reveal: 0.8, count: 0.9, out: 0.45 } as const;
 const LOCK = "is-loading";
+/** En dessous de cette part d'écran défilée, la page se révèle sous le loader avant sa sortie ; au-delà, non */
+const REVEAL_ABOVE = 0.4;
 
 let gone: Promise<void> = Promise.resolve();
 const listeners = new Set<(progress: number) => void>();
@@ -110,9 +116,13 @@ export function runLoader(ready: Promise<unknown>): void {
   // la montée faite (l'avancée lente continue en attendant le reste)
   const crawled = crawl ? new Promise<void>((resolve) => crawl.call(resolve, undefined, CRAWL.duration)) : Promise.resolve();
 
-  // la page prête : l'aplat s'efface, la page apparaît dessous (sur l'accueil, floue, en train de se mettre au point)
+  // la page prête : l'aplat s'efface, la page apparaît dessous (sur l'accueil, floue, en train de se mettre au point) ;
+  // seulement en haut de la page (REVEAL_ABOVE) : plus bas, elle peut être claire, l'aplat attend la sortie
+  let revealed = false;
   void page.then(() => {
-    if (!done && bg) gsap.to(bg, { opacity: 0, duration: reduced ? 0.3 : EXIT.reveal, ease: "power1.inOut" });
+    if (done || !bg || window.scrollY > window.innerHeight * REVEAL_ABOVE) return;
+    revealed = true;
+    gsap.to(bg, { opacity: 0, duration: reduced ? 0.3 : EXIT.reveal, ease: "power1.inOut" });
   });
 
   Promise.all([page, fonts, crawled])
@@ -128,8 +138,10 @@ export function runLoader(ready: Promise<unknown>): void {
         .timeline({ onComplete: finish, onInterrupt: finish })
         // la fin de la progression, tout de suite et sans démarrage lent : la mise au point s'achève, l'image est nette
         .to(progress, { value: 1, duration: EXIT.count, ease: "power2.out", onUpdate: paint })
-        // le nom (relayé par celui du header) et la barre s'effacent
-        .to(metas, { opacity: 0, duration: EXIT.out, ease: "power1.in" }, "+=0.1");
+        // le nom (relayé par celui du header) et la barre s'effacent ; l'aplat avec eux s'il est resté (page rechargée
+        // plus bas)
+        .to(metas, { opacity: 0, duration: EXIT.out, ease: "power1.in" }, "+=0.1")
+        .to(revealed || !bg ? {} : bg, { opacity: 0, duration: EXIT.reveal, ease: "power1.inOut" }, "<");
     })
     .catch(finish);
 }

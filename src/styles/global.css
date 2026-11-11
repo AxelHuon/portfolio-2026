@@ -54,6 +54,10 @@
     /* la place de la barre de défilement reste réservée : quand le loader débloque le défilement, la page ne
        s'élargit pas d'un coup (saut à la fin de la transition, sur les systèmes à barre visible) */
     scrollbar-gutter: stable;
+    /* jamais de défilement horizontal (demande d'Axel, 11 novembre 2026) : ce qui part hors de l'écran en x (l'intro
+       des services, qui arrive de la droite) est rogné. clip, pas hidden : html et body ne deviennent pas des
+       conteneurs de défilement, le hero et l'en-tête des services restent collés (sticky) */
+    overflow-x: clip;
     background: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
@@ -62,6 +66,7 @@
     text-size-adjust: 100%;
   }
   body {
+    overflow-x: clip;
     display: flex;
     flex-direction: column;
     min-height: 100svh;

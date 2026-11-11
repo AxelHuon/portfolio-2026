@@ -2,7 +2,7 @@
 
 Portfolio de développeur front-end, construit sur le boilerplate Astro des sites vitrines (architecture, SEO, cycle
 de vie JS), sans CMS : le contenu est écrit en code. L'accueil s'ouvre sur un portrait en pose longue que la souris
-traîne en WebGL (three.js). Le site est en anglais (textes, titres, adresses : `/about`, `/projects`,
+traîne en WebGL (three.js), puis présente les services (web apps, sites vitrines, e-commerce). Le site est en anglais (textes, titres, adresses : `/about`, `/projects`,
 `/contact`, `/legal`) ; le code et ses commentaires restent en français.
 
 Ce que le site a d'office :
@@ -42,7 +42,8 @@ crédits sont épuisés.
 
 - `site.config.mjs` : le domaine (`SITE_URL`).
 - `src/data/site.ts` : contact, réseaux, mentions légales (encore les valeurs d'exemple).
-- `src/data/content.ts` : l'à-propos et les projets (encore ceux de la démo, images de `public/img/demo/`).
+- `src/data/content.ts` : l'à-propos et les projets (encore ceux de la démo, images de `public/img/demo/`) ; les
+  textes des services (`services`) sont un premier jet.
 - `wrangler.jsonc` : `name` (le Worker Cloudflare).
 - Icônes : `node scripts/assets/icons.mjs` (depuis `src/assets/logo.svg`, sur `#06122b` : favicon SVG et ICO,
   apple-touch-icon, icônes du manifeste dont une maskable). Le logo du header et du loader lit le même SVG
@@ -113,7 +114,7 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   police : `name` (et `weights`) dans `astro.config.mjs`, les graisses préchargées dans Base.astro ; plafond de
   64 Kio de polices préchargées dans `check:budgets`.
 
-## Le hero et le loader
+## Le hero, les services et le loader
 
 - **Loader** (`#loader` dans Base.astro, `chrome/loader.ts`) : la mise au point, sans écran à part. Un aplat bleu
   (`--color-loader`) le temps que la page soit prête (`PageInstance.ready`, plafonné à 6 s), puis il s'efface sur la
@@ -122,7 +123,9 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   header (qui le relaie sans saut) et, en bas, une barre de chargement sur toute la largeur, son pourcentage en
   grand au-dessus, qui suit la tête de la barre. La progression monte
   seule jusqu'à 90 en 1,6 s, puis avance lentement jusqu'à 97 tant que la page et les polices ne sont pas prêtes
-  (jamais figée) ; à 100, l'image est nette, le nom et la barre s'effacent
+  (jamais figée) ; à 100, l'image est nette, le nom et la barre s'effacent. La page ne se révèle sous le loader qu'en
+  haut : rechargée plus bas (le navigateur rend la position, sur la section blanche des services par exemple), l'aplat
+  reste jusqu'à la sortie et s'efface avec le nom et la barre, qui ne se verraient pas sur du blanc
   et `afterLoader()` résout : le module de page y cale son entrée (le nom du hero lettre par lettre, le métier, le
   menu). Affiché par le CSS dès la première peinture, sous `html.js` et au premier chargement seulement. Filet CSS :
   masqué à 6 s si le JS ne prend pas la main.
@@ -140,6 +143,17 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   réglages (rayon, longueur de traînée, dissipation, diffusion…) sont les constantes en tête de `hero-flow.ts`.
 - **Repli** : sans JS, sans WebGL, en mouvement réduit, ou si le contexte est perdu, le `<picture>` reste
   (`data-gl="off"`).
+- **Services** (`index.astro`, `services` de `content.ts`) : une feuille blanche, texte en bleu nuit, qui monte
+  par-dessus le hero et finit par des coins arrondis sur le bleu nuit du footer. La transition suit le défilement
+  (ScrollTrigger en `scrub`, rien d'assisté : `pages/home.ts`, `SCENE`) : la feuille monte un peu plus vite que la
+  page, avec son contenu (`SCENE.lead` : 1,4 écran pendant que la page en défile un ; elle garde cette avance, une
+  marge négative dessous y recolle le footer), donc le hero est recouvert plus tôt et le titre arrive avec le blanc.
+  Son bord bombé (`.services-edge`) se gonfle puis s'aplatit (à plat au départ : en haut de la page, rien ne dépasse
+  sur le hero). Dessous, le hero s'enfonce à peine et s'assombrit. Pas de fondu de couleur : bleu nuit et blanc
+  mélangés donnent un gris sale. Les titres des services montent de leur masque en arrivant (`data-rise`). Sans JS ou
+  en mouvement réduit, la feuille monte simplement. Les scènes essayées avant sont gardées sur les branches
+  `scene/portrait-se-range` et `scene/panorama`. Le site ne défile jamais à l'horizontale (`overflow-x: clip` sur
+  `html` et `body`, global.css : le bord bombé dépasse de l'écran).
 
 ## Animations (GSAP, Lenis, three.js)
 

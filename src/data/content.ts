@@ -74,6 +74,47 @@ export const home = {
   intro: "Websites and web apps, from WebGL and motion to social platforms.",
 };
 
+/** Un service de la section Services de l'accueil */
+export interface Service {
+  /** clé de rendu */
+  id: string;
+  name: string;
+  /** une phrase : pour qui, pour quoi */
+  summary: string;
+  /** ce que comprend un projet de ce type : trois ou quatre éléments courts */
+  includes: readonly string[];
+}
+
+/**
+ * La section Services, sous le hero (demande d'Axel, 11 novembre 2026 : web app, site vitrine, site e-commerce).
+ * Premier jet des textes, à reprendre.
+ */
+export const services = {
+  title: "Services",
+  intro: "Three kinds of projects, from the first mockup to launch.",
+  items: [
+    {
+      id: "web-apps",
+      name: "Web apps",
+      summary: "Dashboards, SaaS products and social platforms that feel as smooth as the apps people use every day.",
+      includes: ["Accounts and permissions", "Feeds and messaging", "Dashboards and admin tools", "Design systems"],
+    },
+    {
+      id: "showcase",
+      name: "Showcase websites",
+      summary: "A site for a brand, a studio or a person, with the motion and WebGL that make it remembered.",
+      includes: ["Motion design", "WebGL and 3D", "Content management", "SEO and performance"],
+    },
+    {
+      id: "e-commerce",
+      name: "E-commerce",
+      summary: "Online stores that load fast and keep buying simple, from the product page to the checkout.",
+      includes: ["Product pages", "Cart and checkout", "Secure payments", "Analytics"],
+    },
+  ] satisfies readonly Service[],
+  cta: { text: "Have a project in mind?", label: "Get in touch", href: "/contact" },
+};
+
 export const about = {
   title: "About",
   body: [

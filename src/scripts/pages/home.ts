@@ -13,12 +13,21 @@
  * États du hero (data-gl) : « pending » (servi ainsi : sous html.js le portrait est caché, filet CSS à 2,4 s), « on »
  * (le canvas est posé dessus), « off » (le <picture> reste).
  * Le texte caché ([data-reveal], global.css) est pris en main ici : son filet CSS est annulé, GSAP le montre.
+ *
+ * Puis les services (index.astro) : une feuille blanche. La transition (SCENE ; demandes d'Axel, 11 novembre 2026 :
+ * la section en blanc, un passage très fluide, la main sur le défilement : rien n'est assisté, tout suit le défilement
+ * en scrub). Pas de fondu de couleur (bleu nuit et blanc mélangés : un gris sale) : la feuille monte par-dessus le
+ * hero, un peu plus vite que la page (SCENE.lead), avec son contenu : le titre arrive avec le blanc. Son bord bombé se
+ * gonfle puis s'aplatit (SCENE.bulge ; à plat au départ : en haut de la page, rien ne dépasse sur le hero). Dessous, le
+ * hero s'enfonce à peine (SCENE.sink) et s'assombrit (SCENE.dim). Les titres des services montent de leur masque en
+ * arrivant (RISE, data-rise). Tout est défait par mm.revert() (ScrollTrigger compris).
  */
 import { gsap } from "gsap";
 import { afterLoader, onLoaderProgress } from "../chrome/loader";
 import type { HeroFlow } from "../gl/hero-flow";
 import { EASE } from "../lib/ease";
 import { createSmoothScroll } from "../lib/lenis";
+import { ScrollTrigger } from "../lib/plugins/scroll-trigger";
 import { MQ, matches } from "../lib/root";
 import type { Kind, PageInstance } from "../types";
 
@@ -46,12 +55,33 @@ const focusAt = (progress: number) => 1 - progress * progress;
 const DEZOOM = 0.22;
 /** En navigation, le texte n'attend pas le canvas au-delà de ce délai (ms) */
 const TEXT_WAIT = 900;
+/**
+ * La transition hero → services : ses conditions (le CSS de index.astro les reprend : à changer ensemble), le hero
+ * sous la feuille (ce qu'il descend, en % de sa hauteur, et son ombre), l'avance de la feuille (en hauteurs d'écran :
+ * elle monte de 1 + lead écrans pendant que la page en défile un, puis défile normalement, gardant cette avance), et
+ * la part du trajet où son bord bombé est au plus haut (à plat au départ et une fois la feuille en haut). Retours
+ * d'Axel, 11 novembre 2026 : sa tête restait trop longtemps, puis une vague blanche partie devant la feuille laissait un
+ * grand vide au-dessus du titre ; c'est la feuille elle-même, avec son contenu, qui prend de l'avance
+ */
+const SCENE = {
+  query: "(prefers-reduced-motion: no-preference)",
+  sink: 10,
+  dim: 0.35,
+  lead: 0.4,
+  bulge: { peak: 0.35, flat: 0.7 },
+} as const;
+/**
+ * Les titres des services qui montent de leur masque : durée (s), décalage entre deux, seuil (haut du titre ; la
+ * feuille est en avance de SCENE.lead écran sur sa place dans la page : le seuil aussi, pour qu'ils montent à 88 % de
+ * l'écran)
+ */
+const RISE = { duration: 1.1, stagger: 0.08, start: `top ${88 + SCENE.lead * 100}%` } as const;
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 export function init(kind: Kind): PageInstance {
   let alive = true;
-  const smooth = createSmoothScroll();
+  const smooth = createSmoothScroll({ scrollTrigger: ScrollTrigger });
   if (kind === "first" && smooth) {
     smooth.lenis.stop();
     void afterLoader().then(() => {
@@ -178,6 +208,51 @@ export function init(kind: Kind): PageInstance {
   } else {
     markReady();
   }
+
+  // la transition, au rythme du défilement : la feuille blanche des services monte, le hero s'enfonce dessous
+  const services = document.querySelector<HTMLElement>("[data-services]");
+  if (hero && services) {
+    mm.add(SCENE.query, () => {
+      const frame = hero.querySelector<HTMLElement>("[data-hero-frame]");
+      const dim = hero.querySelector<HTMLElement>("[data-hero-dim]");
+      const edge = services.querySelector<HTMLElement>("[data-services-edge]");
+      // de la feuille en bas de l'écran (à sa place) à la feuille en haut : elle monte plus vite que la page
+      const { peak, flat } = SCENE.bulge;
+      gsap
+        .timeline({
+          defaults: { ease: "none" },
+          scrollTrigger: { trigger: services, start: "top bottom", end: "top top", scrub: true, invalidateOnRefresh: true },
+        })
+        // l'avance de la feuille, gardée ensuite (index.astro retire la même hauteur sous elle : le footer la suit)
+        .fromTo(services, { y: 0 }, { y: () => -SCENE.lead * window.innerHeight, duration: 1 }, 0)
+        .fromTo(frame ?? {}, { yPercent: 0 }, { yPercent: SCENE.sink, duration: flat }, 0)
+        .fromTo(dim ?? {}, { opacity: 0 }, { opacity: SCENE.dim, duration: flat }, 0)
+        // le bord bombé : à plat tant que la feuille est sous l'écran (en haut de la page, rien ne dépasse sur le hero),
+        // il se gonfle en montant, puis s'aplatit avant que la feuille touche le haut
+        .fromTo(edge ?? {}, { scaleY: 0 }, { scaleY: 1, duration: peak, ease: "power1.out" }, 0)
+        .to(edge ?? {}, { scaleY: 0, duration: flat - peak, ease: "power1.in" }, peak);
+    });
+  }
+
+  // la section des services : son titre et ceux des services montent de leur masque en arrivant
+  mm.add(MQ.motion, (context) => {
+    // cachés d'avance, sous leur masque ; ceux déjà passés au chargement montent aussitôt (batch)
+    gsap.set("[data-rise]", { yPercent: 105 });
+    ScrollTrigger.batch("[data-rise]", {
+      start: RISE.start,
+      once: true,
+      // dans le contexte : défait avec lui (mm.revert)
+      onEnter: (targets) =>
+        context.add(() =>
+          gsap.to(targets, { yPercent: 0, duration: RISE.duration, ease: "expo.out", stagger: RISE.stagger }),
+        ),
+    });
+  });
+
+  // les positions dépendent de la police (hauteur des lignes) : recalculées une fois Satoshi chargée
+  void document.fonts.ready.then(() => {
+    if (alive) ScrollTrigger.refresh();
+  });
 
   return {
     ready,
