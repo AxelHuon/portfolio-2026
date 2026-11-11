@@ -1,0 +1,13 @@
+---
+/* Servie par Cloudflare avec un statut 404 pour toute adresse inconnue (wrangler.jsonc : not_found_handling) ; noindex */
+import { uiText } from "../data/site";
+import Base from "../layouts/Base.astro";
+---
+
+<Base page="404">
+  <div class="mx-auto flex w-full max-w-page flex-col gap-6 px-gutter pt-8">
+    <h1 class="font-display text-3xl font-medium tracking-tight md:text-5xl">Page not found</h1>
+    <p class="text-lg">{uiText.notFound}</p>
+    <p><a href="/" class="underline underline-offset-4">{uiText.backHome}</a></p>
+  </div>
+</Base>

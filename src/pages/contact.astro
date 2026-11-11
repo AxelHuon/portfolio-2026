@@ -1,0 +1,33 @@
+---
+import ExternalLink from "../components/ExternalLink.astro";
+import { contact, telHref } from "../data/site";
+import Base from "../layouts/Base.astro";
+---
+
+<Base page="contact">
+  <div class="mx-auto flex w-full max-w-page flex-col gap-12 px-gutter pt-8">
+    <h1 class="font-display text-3xl font-medium tracking-tight md:text-5xl">Contact</h1>
+    <div class="grid gap-10 text-lg md:grid-cols-2">
+      <ul class="flex flex-col gap-2">
+        <li><a href={`mailto:${contact.email}`} class="underline underline-offset-4">{contact.email}</a></li>
+        <li><a href={telHref(contact.phone)} class="underline underline-offset-4">{contact.phone}</a></li>
+      </ul>
+      <address class="not-italic">
+        {contact.address.map((line) => <span class="block">{line}</span>)}
+      </address>
+      {
+        contact.socials.length > 0 && (
+          <ul class="flex flex-col gap-2">
+            {contact.socials.map((social) => (
+              <li>
+                <ExternalLink href={social.href} me class="underline underline-offset-4">
+                  {social.label}
+                </ExternalLink>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
+</Base>

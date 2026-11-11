@@ -1,0 +1,2 @@
+# fichiers de public/ jamais publiés (copiés dans dist/ sinon)
+.DS_Store

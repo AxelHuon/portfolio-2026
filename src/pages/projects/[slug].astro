@@ -1,0 +1,71 @@
+---
+/*
+ * Fiche d'un projet : une page par projet de src/data/content.ts, générée au build. Titre et description depuis le
+ * projet (projectMeta), image de partage = sa couverture en JPEG 1200 × 630, JSON-LD CreativeWork et fil d'Ariane.
+ * data-page reste « projects » : le lien Projets du menu est le lien courant, et un module de page éventuel
+ * (src/scripts/pages/projects.ts) sert la liste comme les fiches.
+ */
+import type { GetStaticPaths } from "astro";
+import Picture from "../../components/Picture.astro";
+import { projects, type Project } from "../../data/content";
+import { formatMonth, projectMeta, uiText } from "../../data/site";
+import Base from "../../layouts/Base.astro";
+
+export const getStaticPaths = (() => projects.map((project) => ({ params: { slug: project.slug }, props: { project } }))) satisfies GetStaticPaths;
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+const COVER_SIZES = "(min-width: 80rem) 80rem, 100vw";
+const GALLERY_SIZES = "(min-width: 48rem) 50vw, 100vw";
+const origin = Astro.site ?? new URL(Astro.url.origin);
+const home = new URL("/", origin).href;
+const url = new URL(`/projects/${project.slug}`, origin).href;
+const jsonLd = [
+  {
+    "@type": "CreativeWork",
+    "@id": `${url}#work`,
+    name: project.title,
+    description: project.summary,
+    image: new URL(project.og.src, origin).href,
+    dateCreated: project.date,
+    url,
+    creator: { "@id": `${home}#entity` },
+  },
+  {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: home },
+      { "@type": "ListItem", position: 2, name: "Projects", item: new URL("/projects", origin).href },
+      { "@type": "ListItem", position: 3, name: project.title, item: url },
+    ],
+  },
+];
+---
+
+<Base page="projects" {...projectMeta(project)} image={project.og} type="article" jsonLd={jsonLd}>
+  <link slot="head" rel="preload" as="image" type="image/avif" imagesrcset={project.cover.avif} imagesizes={COVER_SIZES} fetchpriority="high" />
+  <article class="mx-auto flex w-full max-w-page flex-col gap-10 px-gutter pt-8">
+    <header class="flex flex-col gap-4">
+      <p class="text-sm text-muted"><time datetime={project.date}>{formatMonth(project.date)}</time></p>
+      <h1 class="font-display text-3xl font-medium tracking-tight md:text-5xl">{project.title}</h1>
+      <p class="max-w-prose text-xl">{project.summary}</p>
+    </header>
+    <Picture image={project.cover} sizes={COVER_SIZES} loading="eager" fetchpriority="high" />
+    <div class="flex max-w-prose flex-col gap-4 text-lg">
+      {project.body.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+    {
+      project.gallery.length > 0 && (
+        <div class="grid items-start gap-6 md:grid-cols-2">
+          {project.gallery.map((image) => (
+            <Picture image={image} sizes={GALLERY_SIZES} />
+          ))}
+        </div>
+      )
+    }
+    <p><a href="/projects" class="underline underline-offset-4">{uiText.backToProjects}</a></p>
+  </article>
+</Base>

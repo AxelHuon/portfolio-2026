@@ -1,0 +1,159 @@
+---
+/*
+ * Accueil : le hero, portrait plein écran passé sous le header, puis les projets récents.
+ * Le <picture> du portrait est toujours servi : seul sans JS, sans WebGL ou en mouvement réduit ; sinon
+ * src/scripts/pages/home.ts pose dessus un canvas WebGL (gl/hero-flow.ts) au même cadrage. home.focus règle ce cadrage
+ * aux deux endroits : object-position ici, data-focus-x / -y pour le shader.
+ * Le nom (site.name) passe une ligne par mot, chacune dans son masque, une lettre par span : home.ts les fait monter
+ * une à une à l'entrée. Les lecteurs d'écran lisent le nom d'un bloc (sr-only), les lettres leur sont cachées.
+ */
+import Picture from "../components/Picture.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { home, projects } from "../data/content";
+import { site, uiText } from "../data/site";
+import Base from "../layouts/Base.astro";
+
+// le portrait couvre toute la largeur de l'écran
+const HERO_SIZES = "100vw";
+const CARD_SIZES = "(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw";
+const latest = projects.slice(0, 3);
+const objectPosition = `object-position:${home.focus.x * 100}% ${home.focus.y * 100}%`;
+const nameLines = site.name.split(" ");
+---
+
+<Base page="home">
+  <link slot="head" rel="preload" as="image" type="image/avif" imagesrcset={home.image.avif} imagesizes={HERO_SIZES} fetchpriority="high" />
+  <section class="hero" data-hero data-gl="pending" data-focus-x={home.focus.x} data-focus-y={home.focus.y} aria-labelledby="hero-title">
+    <div class="hero-media mesh" data-hero-media>
+      <Picture
+        image={home.image}
+        sizes={HERO_SIZES}
+        loading="eager"
+        fetchpriority="high"
+        class="absolute inset-0 h-full w-full object-cover"
+        style={objectPosition}
+      />
+    </div>
+    <div class="hero-text" data-reveal>
+      <h1 id="hero-title" class="hero-title">
+        <span class="sr-only">{site.name}</span>
+        <span aria-hidden="true">
+          {
+            nameLines.map((line) => (
+              <span class="hero-line">
+                {[...line].map((char) => (
+                  <span class="hero-char" data-reveal-char>
+                    {char}
+                  </span>
+                ))}
+              </span>
+            ))
+          }
+        </span>
+      </h1>
+      <div class="hero-aside">
+        <p data-reveal-fade>{home.role}</p>
+        <p class="text-muted" data-reveal-fade>{home.intro}</p>
+      </div>
+    </div>
+  </section>
+
+  {
+    latest.length > 0 && (
+      <section aria-labelledby="latest" class="mx-auto mt-24 flex w-full max-w-page flex-col gap-8 px-gutter">
+        <h2 id="latest" class="font-display text-2xl font-medium">
+          {uiText.recentProjects}
+        </h2>
+        <div class="grid gap-x-6 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
+          {latest.map((project) => <ProjectCard project={project} sizes={CARD_SIZES} heading="h3" />)}
+        </div>
+        <p>
+          <a href="/projects" class="underline underline-offset-4">
+            {uiText.allProjects}
+          </a>
+        </p>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    height: 100svh;
+    min-height: 34rem;
+    margin-top: calc(-1 * var(--spacing-header));
+    overflow: clip;
+  }
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  /* sans WebGL : le portrait en écran sur le dégradé (.mesh), comme le compose le shader */
+  .hero-media :global(img) {
+    mix-blend-mode: screen;
+  }
+  /* le canvas de gl/hero-flow.ts, posé sur le <picture> ; il n'intercepte rien (le pointeur est lu sur la fenêtre) */
+  .hero-media :global(canvas) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  /* bas du hero fondu dans le fond : le texte reste lisible sur le t-shirt, la page enchaîne sans arête */
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--color-background) 0%, transparent 42%);
+  }
+  .hero-text {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem 3rem;
+    padding: 0 var(--spacing-gutter) clamp(1.5rem, 6vh, 4rem);
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(4rem, 14vw, 14rem);
+    line-height: 0.88;
+    letter-spacing: -0.045em;
+  }
+  /* le masque de chaque ligne, avec de la marge au-dessus : il ne rogne ni les capitales ni le « l » */
+  .hero-line {
+    display: block;
+    overflow: clip;
+    padding-top: 0.1em;
+    margin-top: -0.1em;
+  }
+  /* une lettre : inline-block pour bouger seule (transform), basculée depuis son pied */
+  .hero-char {
+    display: inline-block;
+    transform-origin: 0% 100%;
+  }
+  .hero-aside {
+    max-width: 22rem;
+    font-size: clamp(1rem, 1.2vw, 1.125rem);
+    line-height: 1.45;
+  }
+  /* portrait caché le temps que le canvas arrive (home.ts) ; filet à 2,4 s, comme [data-reveal] (global.css) */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .hero[data-gl="pending"] .hero-media :global(img) {
+      opacity: 0;
+      animation: reveal-safety 2.4s step-end forwards;
+    }
+  }
+</style>

@@ -1,0 +1,17 @@
+# dépendances et builds
+node_modules/
+dist/
+.astro/
+
+# environnement : secrets éventuels, jamais versionnés
+.env
+.env.*
+.wrangler/
+
+# sources (photos, masters, polices achetées) : hors dépôt, voir le README
+sources/
+
+# système, éditeurs, sessions d'agents
+.DS_Store
+.idea/
+.claude/scheduled_tasks.lock

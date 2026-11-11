@@ -1,0 +1,20 @@
+---
+import Picture from "../components/Picture.astro";
+import { about } from "../data/content";
+import Base from "../layouts/Base.astro";
+
+const PORTRAIT_SIZES = "(min-width: 48rem) 40vw, 100vw";
+---
+
+<Base page="about">
+  {about.image && <link slot="head" rel="preload" as="image" type="image/avif" imagesrcset={about.image.avif} imagesizes={PORTRAIT_SIZES} fetchpriority="high" />}
+  <div class="mx-auto grid w-full max-w-page gap-12 px-gutter pt-8 md:grid-cols-[3fr_2fr]">
+    <div class="flex flex-col gap-8">
+      <h1 class="font-display text-3xl font-medium tracking-tight md:text-5xl">{about.title}</h1>
+      <div class="flex max-w-prose flex-col gap-4 text-lg">
+        {about.body.map((paragraph) => <p>{paragraph}</p>)}
+      </div>
+    </div>
+    {about.image && <Picture image={about.image} sizes={PORTRAIT_SIZES} loading="eager" fetchpriority="high" />}
+  </div>
+</Base>

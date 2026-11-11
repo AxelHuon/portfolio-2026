@@ -1,0 +1,25 @@
+---
+import type { Project } from "../data/content";
+import { formatMonth } from "../data/site";
+import Picture from "./Picture.astro";
+
+interface Props {
+  project: Project;
+  /** largeur affichée de la couverture (Picture → sizes) */
+  sizes: string;
+  /** niveau du titre : h2 sous le h1 de la page, h3 sous une section titrée */
+  heading?: "h2" | "h3";
+}
+
+const { project, sizes, heading: Heading = "h2" } = Astro.props;
+---
+
+<article class="relative flex flex-col gap-3">
+  <Picture image={project.cover} sizes={sizes} />
+  <Heading class="text-lg font-medium">
+    {/* lien étendu à toute la carte par ::after : un seul lien par carte, pour le clavier et les lecteurs d'écran */}
+    <a href={`/projects/${project.slug}`} class="after:absolute after:inset-0">{project.title}</a>
+  </Heading>
+  <p class="text-sm text-muted"><time datetime={project.date}>{formatMonth(project.date)}</time></p>
+  <p>{project.summary}</p>
+</article>

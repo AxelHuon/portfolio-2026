@@ -1,0 +1,13 @@
+---
+import { contact, legalLink, site } from "../data/site";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-border px-gutter py-6 text-sm text-muted">
+  <p>© {year} {site.name}</p>
+  <ul class="flex flex-wrap gap-6">
+    <li><a href={`mailto:${contact.email}`}>{contact.email}</a></li>
+    <li><a href={legalLink.href}>{legalLink.label}</a></li>
+  </ul>
+</footer>

@@ -1,0 +1,19 @@
+---
+/*
+ * Lien vers un autre site : nouvel onglet, sans accès à window.opener ni référent, annoncé aux lecteurs d'écran
+ * (« (nouvel onglet) », masqué à l'écran). rel="me" pour les profils du client (liens de Contact, sameAs du JSON-LD).
+ */
+import { uiText } from "../data/site";
+
+interface Props {
+  href: string;
+  me?: boolean;
+  class?: string;
+}
+
+const { href, me = false, class: className } = Astro.props;
+---
+
+<a href={href} target="_blank" rel={me ? "me noopener noreferrer" : "noopener noreferrer"} class={className}>
+  <slot /><span class="sr-only"> {uiText.newTab}</span>
+</a>

@@ -1,0 +1,57 @@
+---
+/*
+ * Mentions légales (LCEN, article 6) : éditeur, directeur de la publication, hébergeur, données personnelles,
+ * crédits. noindex et hors du sitemap (UNLISTED, site.config.mjs). Les valeurs sont dans src/data/site.ts (legal).
+ * Le paragraphe « aucun cookie » n'est vrai que sans mesure d'audience ni lecteur intégré : à revoir sinon.
+ * En anglais comme le reste du site ; les informations exigées par la LCEN restent les mêmes.
+ */
+import { contact, legal, telHref } from "../data/site";
+import Base from "../layouts/Base.astro";
+---
+
+<Base page="legal">
+  <div class="mx-auto flex w-full max-w-prose flex-col gap-10 px-gutter pt-8">
+    <h1 class="font-display text-3xl font-medium tracking-tight">Legal notice</h1>
+
+    <section aria-labelledby="legal-publisher" class="flex flex-col gap-2">
+      <h2 id="legal-publisher" class="text-xl font-medium">Publisher</h2>
+      <p>{legal.publisher}</p>
+      <p>{legal.registration}</p>
+      <address class="not-italic">{legal.address.map((line) => <span class="block">{line}</span>)}</address>
+      <p>
+        <a href={`mailto:${contact.email}`} class="underline underline-offset-4">{contact.email}</a>, <a
+          href={telHref(contact.phone)}
+          class="underline underline-offset-4">{contact.phone}</a
+        >
+      </p>
+      <p>Publication director: {legal.director}</p>
+    </section>
+
+    <section aria-labelledby="legal-host" class="flex flex-col gap-2">
+      <h2 id="legal-host" class="text-xl font-medium">Hosting provider</h2>
+      <p>{legal.host.name}</p>
+      <p>{legal.host.address}</p>
+      <p>{legal.host.phone}</p>
+    </section>
+
+    <section aria-labelledby="legal-privacy" class="flex flex-col gap-2">
+      <h2 id="legal-privacy" class="text-xl font-medium">Personal data and cookies</h2>
+      <p>
+        This website sets no cookies and uses no trackers or analytics tools. Its images and fonts are hosted on the
+        website itself.
+      </p>
+      <p>
+        The hosting provider may keep technical logs (IP address, date, requested page) to keep the service secure.
+      </p>
+    </section>
+
+    {
+      legal.credits.length > 0 && (
+        <section aria-labelledby="legal-credits" class="flex flex-col gap-2">
+          <h2 id="legal-credits" class="text-xl font-medium">Credits</h2>
+          {legal.credits.map((line) => <p>{line}</p>)}
+        </section>
+      )
+    }
+  </div>
+</Base>

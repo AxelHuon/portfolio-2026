@@ -1,0 +1,140 @@
+---
+/*
+ * Le seul layout : SEO (titre, description, canonical, Open Graph, Twitter, JSON-LD), polices, icônes, ClientRouter,
+ * lien d'évitement, loader du premier chargement, header, main, footer, région live et démarrage des scripts (app.ts).
+ * - title et description par défaut : pageMeta[page] (src/data/site.ts) ;
+ * - noindex : la 404 et les pages d'UNLISTED (site.config.mjs), sans canonical ni og:url ;
+ * - URL absolues depuis `site` (astro.config.mjs) ; canonical sans barre finale ni .html ;
+ * - slot "head" : le préchargement de l'image LCP d'une page (mêmes srcset et sizes que son <picture>).
+ * Commentaires en {/* … *\/} : un commentaire HTML partirait dans les pages.
+ */
+import { Font } from "astro:assets";
+import { ClientRouter } from "astro:transitions";
+import "../styles/global.css";
+import { UNLISTED } from "../../site.config.mjs";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import { pageMeta, site, siteJsonLd, uiText, type OgImage, type PageId } from "../data/site";
+
+interface Props {
+  page: PageId;
+  title?: string;
+  description?: string;
+  lang?: string;
+  noindex?: boolean;
+  /** image de partage (une fiche projet passe sa couverture en JPEG 1200 × 630) */
+  image?: OgImage;
+  /** og:type : « article » pour une fiche projet */
+  type?: "website" | "article";
+  /** nœuds ajoutés au @graph du JSON-LD (CreativeWork, BreadcrumbList…) */
+  jsonLd?: object[];
+}
+
+const { page, lang = site.lang, image = site.ogImage, type = "website" } = Astro.props;
+const title = Astro.props.title ?? pageMeta[page].title;
+const description = Astro.props.description ?? pageMeta[page].description;
+const noindex = Astro.props.noindex ?? (page === "404" || UNLISTED.test(Astro.url.pathname));
+const origin = Astro.site ?? new URL(Astro.url.origin);
+// au build, pathname vaut /about.html (/index.html pour l'accueil) : URL canonique sans .html ni barre finale
+const path = Astro.url.pathname.replace(/(\/index)?(\.html)?\/?$/, "") || "/";
+const canonical = new URL(path, origin).href;
+const ogImage = new URL(image.src, origin).href;
+// « < » échappé : un texte du contenu contenant </script> sortirait du bloc
+// l'année du loader (« Portfolio © 2026 »), prise au build comme celle du footer
+const year = new Date().getFullYear();
+const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.jsonLd)).replace(/</g, "\\u003c");
+---
+
+<!doctype html>
+<html lang={lang} data-page={page}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {
+      /* Avant toute feuille de style et avant le ClientRouter, identique à l'octet sur toutes les pages (le routeur ne
+       rejoue pas un script déjà vu ; un script interpolé serait rejoué à chaque navigation) :
+       - classe js : un état caché avant une animation n'existe que sous html.js ;
+       - startViewTransition retiré : les transitions sont celles de src/scripts/transition.ts, jamais les View
+         Transitions natives (capture figée, rendu suspendu) ; le routeur le lit à son évaluation, d'où avant ;
+       - __uaVT : le retour par geste d'iOS et de Safari est déjà animé par le navigateur (popstate, avant celui du
+         routeur). */
+    }
+    <script is:inline>
+      (() => {
+        document.documentElement.classList.add("js");
+        document.startViewTransition = void 0;
+        addEventListener("popstate", (e) => {
+          window.__uaVT = !!e.hasUAVisualTransition;
+        });
+      })();
+    </script>
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    <meta name="theme-color" content={site.themeColor} />
+    <meta name="color-scheme" content="dark" />
+    {
+      /* les polices et leur graisse courante préchargée (crossorigin posé par <Font>) : le texte, et Satoshi, que le
+       loader affiche dès la première peinture */
+    }
+    <Font cssVariable="--font-body" preload={[{ weight: 400 }]} />
+    <Font cssVariable="--font-heading" preload={[{ weight: 500 }]} />
+    {/* ICO pour les vieux navigateurs, PNG 32 px pour les onglets, 192 px pour Google, apple-touch-icon opaque */}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content={lang === "en" ? "en_US" : "fr_FR"} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {!noindex && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content={String(image.width)} />
+    <meta property="og:image:height" content={String(image.height)} />
+    <meta property="og:image:alt" content={image.alt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={image.alt} />
+    <script type="application/ld+json" is:inline set:html={jsonLd} />
+    <ClientRouter fallback="swap" />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip" href="#main">{uiText.skip}</a>
+    {
+      /* Loader : affiché par global.css au premier chargement seulement (sous html.js), piloté par
+         src/scripts/chrome/loader.ts. Décoratif : la page dessous reste lisible par les lecteurs d'écran. */
+    }
+    <div id="loader" class="loader" aria-hidden="true">
+      <div class="loader-streaks" data-loader-streaks></div>
+      <div class="loader-top">
+        <p class="loader-meta" data-loader-meta>
+          <span class="loader-strong">{site.name}</span>
+          <span class="loader-dim">{site.role}</span>
+        </p>
+        <p class="loader-meta loader-meta-end" data-loader-meta>
+          <span class="loader-strong">Portfolio</span>
+          <span class="loader-dim">© {year}</span>
+        </p>
+      </div>
+      <p class="loader-count"><span class="loader-digits" data-loader-count>0</span></p>
+      <span class="loader-line" data-loader-line></span>
+    </div>
+    <Header page={page} />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+    <p id="live" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+    <script>
+      import { start } from "../scripts/app";
+      start();
+    </script>
+  </body>
+</html>

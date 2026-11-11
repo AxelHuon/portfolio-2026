@@ -1,0 +1,82 @@
+---
+/*
+ * En-tête : le nom du site, la navigation, et sous 48rem le bouton du menu mobile (src/scripts/chrome/menu.ts).
+ * Non persistant : remplacé à chaque navigation, son aria-current vient du serveur. Sans JS, pas de menu mobile :
+ * les liens restent affichés (variante no-js de global.css). Hauteur minimale (min-h-header, --spacing-header) : le
+ * hero de l'accueil remonte dessous d'autant.
+ */
+import { nav, site, uiText, type PageId } from "../data/site";
+
+interface Props {
+  page: PageId;
+}
+
+const { page } = Astro.props;
+const current = (id: string) => (id === page ? "page" : undefined);
+---
+
+<header id="site-header" class="relative z-20 flex min-h-header items-center justify-between gap-6 px-gutter">
+  <a href="/" class="font-medium" aria-current={current("home")}>{site.name}</a>
+  <nav aria-label={uiText.mainNav}>
+    <ul class="hidden gap-6 md:flex no-js:flex no-js:flex-wrap">
+      {
+        nav.map((item) => (
+          <li>
+            <a href={item.href} aria-current={current(item.id)} class="link">
+              {item.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  <button
+    type="button"
+    class="toggle min-h-11 md:hidden no-js:hidden"
+    data-menu-toggle
+    aria-expanded="false"
+    aria-controls="mobile-menu"
+  >
+    <span class="open">{uiText.menu}</span>
+    <span class="close">{uiText.close}</span>
+  </button>
+</header>
+
+<div id="mobile-menu" role="dialog" aria-label={uiText.menu} hidden class="fixed inset-0 z-10 bg-background px-gutter pt-24">
+  <nav aria-label={uiText.mainNav}>
+    <ul class="flex flex-col gap-4 text-3xl">
+      {
+        nav.map((item) => (
+          <li>
+            <a href={item.href} aria-current={current(item.id)} class="link block py-1">
+              {item.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</div>
+
+<style>
+  .link[aria-current="page"] {
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-accent);
+    text-underline-offset: 0.2em;
+  }
+  /* le libellé suit l'état du bouton */
+  .toggle[aria-expanded="true"] .open,
+  .toggle[aria-expanded="false"] .close {
+    display: none;
+  }
+  /* menu ouvert : la page dessous ne défile plus */
+  :global(html:has(#mobile-menu[data-open])) {
+    overflow: hidden;
+  }
+  /* le menu n'existe qu'en petit écran */
+  @media (min-width: 48rem) {
+    #mobile-menu {
+      display: none;
+    }
+  }
+</style>

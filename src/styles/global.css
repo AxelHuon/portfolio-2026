@@ -1,0 +1,295 @@
+/*
+ * Styles globaux : Tailwind 4, les tokens du projet et la base accessible (focus, lien d'évitement, mouvement
+ * réduit). Pour chaque projet, la DA change la valeur des tokens, pas leur nom : tout le site passe par eux
+ * (bg-background, text-foreground, text-muted, border-border, font-sans, px-gutter, max-w-page…).
+ * Les styles d'un composant restent dans son <style> (scoped) ; :global() seulement pour lire un état de <html>.
+ */
+
+/* source("..") : Tailwind ne scanne que src/ (ni .agents/, ni studio/, ni scripts/, ni le README) */
+@import "tailwindcss" source("..");
+
+/* Sans JS (classe js posée par le script inline de Base.astro) : pas de menu mobile, les liens restent visibles */
+@custom-variant no-js (html:not(.js) &);
+
+@theme {
+  /* Couleurs : un dégradé « mesh » de bleus (sur le modèle d'une référence en verts donnée par Axel le 11 novembre
+     2026, passée au bleu à sa demande) : bleu nuit, ardoise, bleu franc, bleu ciel, crème. Il est le fond du hero, où
+     le portrait en noir et blanc se pose dessus en mode écran (gl/hero-flow.ts lit les --color-mesh-*, .mesh
+     ci-dessous le reproduit en CSS), et du loader. La page est d'un bleu presque noir, le texte d'un blanc légèrement
+     froid ; l'accent bleu ciel marque les états (barre du loader, lien courant, focus, sélection).
+     --color-background = site.themeColor (src/data/site.ts), à changer ensemble.
+     Contrastes sur le fond : foreground 17:1, accent 12,5:1, muted 8,4:1. */
+  --color-background: #06122b;
+  --color-foreground: #f2f5fa;
+  --color-muted: #9fb0c8;
+  --color-border: #1c2c4a;
+  --color-accent: #9fdcff;
+  --color-accent-foreground: #06122b;
+  /* fond du loader : moins foncé que la page (retour d'Axel, 11 novembre 2026), le bleu du haut du hero, sur lequel il
+     se dissout ; le compteur blanc y garde 11,6:1 */
+  --color-loader: #12306a;
+  --color-mesh-deep: #0a2552;
+  --color-mesh-slate: #4a5f7f;
+  --color-mesh-mid: #2f6fd6;
+  /* plus sombre que l'accent : à #9fdcff, le coin en haut à droite brûlait (retour d'Axel, 11 novembre 2026) */
+  --color-mesh-light: #5f8fd8;
+  --color-mesh-warm: #eae1c1;
+
+  /* Polices (astro.config.mjs, fonts ; posées par <Font> dans Base.astro, avec leur repli) : Switzer pour le texte,
+     Satoshi pour le nom et les titres (font-display, graisse 500 seulement). Le token et la variable d'Astro ne
+     portent pas le même nom. */
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+
+  /* Marge latérale des pages, largeur maximale du contenu, hauteur du header (le hero de l'accueil passe dessous) */
+  --spacing-gutter: clamp(1rem, 4vw, 3rem);
+  --spacing-header: 4.5rem;
+  --container-page: 80rem;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    /* la place de la barre de défilement reste réservée : quand le loader débloque le défilement, la page ne
+       s'élargit pas d'un coup (saut à la fin de la transition, sur les systèmes à barre visible) */
+    scrollbar-gutter: stable;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+  }
+  main {
+    flex: 1;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-foreground);
+  }
+}
+
+/* Anneau de focus en couleur d'accent, halo de fond : lisible sur une image comme sur un aplat */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--color-background);
+}
+/* Focus posé par le script (h1 ou main après une navigation, cible du lien d'évitement) : pas d'anneau, ce ne sont
+   pas des commandes (Safari iOS le dessinait après un toucher) */
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+@layer components {
+  /* Lien d'évitement : premier élément du body, visible au focus seulement */
+  .skip {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: var(--color-accent);
+    color: var(--color-accent-foreground);
+    translate: 0 calc(-100% - 1.5rem);
+  }
+  .skip:focus,
+  .skip:focus-visible {
+    translate: none;
+  }
+
+  /* Loader du premier chargement (Base.astro, src/scripts/chrome/loader.ts) : sous html.js, et seulement tant que
+     html[data-kind] est absent ou « first » (app.ts pose « nav » sur les pages suivantes). Filet : masqué à 6 s si
+     le JS n'a pas pris la main (loader.ts annule cette animation).
+     (11 novembre 2026) En haut, le nom et le métier à gauche (là où le header mettra le nom), « Portfolio © année » à
+     droite (là où viendra le menu) ; en bas à gauche, le grand compteur, à la taille et à la place du nom du hero ;
+     tout en bas, une ligne qui se remplit. Derrière, des stries de lumière traversent l'écran comme sur une pose longue
+     de nuit, de plus en plus nombreuses avec la progression (créées par loader.ts). À 100 %, elles filent, le chiffre
+     et les textes sortent par le haut et le loader se dissout sur le hero flou, qui fait sa mise au point. */
+  .loader {
+    display: none;
+  }
+  html.js:not([data-kind]) .loader,
+  html.js[data-kind="first"] .loader {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    overflow: hidden;
+    padding: 0 var(--spacing-gutter) clamp(1.5rem, 6vh, 4rem);
+    background: var(--color-loader);
+    color: var(--color-foreground);
+    animation: loader-safety 6s step-end forwards;
+  }
+  /* les stries, sous le texte : une ligne fine, sa tête lumineuse à droite (elles vont vers la droite) */
+  .loader-streaks {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .loader-streak {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    border-radius: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--color-foreground) 55%, transparent) 70%,
+      var(--color-foreground)
+    );
+  }
+  .loader-streak-accent {
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 55%, transparent) 70%, var(--color-accent));
+  }
+  .loader-top,
+  .loader-count {
+    position: relative;
+    z-index: 1;
+  }
+  .loader-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: var(--spacing-header);
+  }
+  .loader-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.9375rem;
+    line-height: 1.25;
+  }
+  .loader-meta-end {
+    text-align: right;
+  }
+  .loader-strong {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .loader-dim {
+    color: color-mix(in srgb, var(--color-foreground) 60%, transparent);
+  }
+  /* le masque du chiffre, avec de la marge au-dessus : il ne rogne pas le haut des chiffres */
+  .loader-count {
+    grid-row: 3;
+    align-self: end;
+    overflow: clip;
+    padding-top: 0.1em;
+    margin-top: -0.1em;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(4rem, 14vw, 14rem);
+    line-height: 0.88;
+    letter-spacing: -0.045em;
+    font-variant-numeric: tabular-nums;
+  }
+  .loader-digits {
+    display: block;
+  }
+  /* la progression, tout en bas, sur toute la largeur */
+  .loader-line {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--color-accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+  }
+  /* défilement bloqué pendant le loader (posé et retiré par loader.ts : sans JS, jamais bloqué) */
+  html.is-loading {
+    overflow: hidden;
+  }
+
+  /* Le dégradé de la DA en CSS : fond du hero quand le WebGL manque (le portrait s'y pose en
+     mix-blend-mode: screen, comme dans le shader). Mêmes taches, même ordre que mesh() de gl/hero-flow.ts (le premier
+     calque est le plus haut ici, le dernier mélangé là-bas) : changer l'un, c'est changer l'autre. */
+  .mesh {
+    background:
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-mesh-deep) 45%, transparent) 0%, transparent 20%),
+      radial-gradient(45% 45% at 46% 82%, color-mix(in srgb, var(--color-mesh-warm) 30%, transparent), transparent 70%),
+      radial-gradient(60% 85% at 100% 14%, color-mix(in srgb, var(--color-mesh-light) 60%, transparent), transparent 72%),
+      radial-gradient(70% 105% at 28% 38%, color-mix(in srgb, var(--color-mesh-mid) 90%, transparent), transparent 75%),
+      radial-gradient(55% 75% at 2% 100%, color-mix(in srgb, var(--color-mesh-slate) 60%, transparent), transparent 70%),
+      var(--color-mesh-deep);
+  }
+
+  /* Lenis 1.3.26 : règles de lenis/dist/lenis.css */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis:not(.lenis-autoToggle).lenis-stopped {
+    overflow: clip;
+  }
+  .lenis [data-lenis-prevent],
+  .lenis [data-lenis-prevent-wheel],
+  .lenis [data-lenis-prevent-touch],
+  .lenis [data-lenis-prevent-vertical],
+  .lenis [data-lenis-prevent-horizontal] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
+  .lenis.lenis-autoToggle {
+    transition-property: overflow;
+    transition-duration: 1ms;
+    transition-behavior: allow-discrete;
+  }
+}
+
+@keyframes loader-safety {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* Contenu caché avant son entrée : seulement sous html.js et sans mouvement réduit, avec un filet (visible à 2,4 s si
+   le JS échoue). Le module de la page annule le filet (style.animation = "none") et le montre lui-même. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js [data-reveal] {
+    opacity: 0;
+    animation: reveal-safety 2.4s step-end forwards;
+  }
+}
+@keyframes reveal-safety {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  html * {
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-width: 3px;
+    box-shadow: 0 0 0 6px var(--color-background);
+  }
+}

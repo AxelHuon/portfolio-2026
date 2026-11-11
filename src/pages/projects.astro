@@ -1,0 +1,16 @@
+---
+import ProjectCard from "../components/ProjectCard.astro";
+import { projects } from "../data/content";
+import Base from "../layouts/Base.astro";
+
+const CARD_SIZES = "(min-width: 64rem) 33vw, (min-width: 48rem) 50vw, 100vw";
+---
+
+<Base page="projects">
+  <div class="mx-auto flex w-full max-w-page flex-col gap-12 px-gutter pt-8">
+    <h1 class="font-display text-3xl font-medium tracking-tight md:text-5xl">Projects</h1>
+    <div class="grid gap-x-6 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
+      {projects.map((project) => <ProjectCard project={project} sizes={CARD_SIZES} />)}
+    </div>
+  </div>
+</Base>

@@ -1,0 +1,14 @@
+// Cloudflare Workers static assets : sortie statique d'Astro, sans Worker ni adaptateur (output "static").
+// Déployé par Workers Builds à chaque push sur main : build `pnpm build`, déploiement `npx wrangler deploy` ;
+// Node 24 (.node-version), pnpm (pnpm-lock.yaml).
+// "name" doit être celui du Worker créé dans le tableau de bord Cloudflare ; compatibility_date : la date de création.
+{
+  "name": "nom-du-site",
+  "compatibility_date": "2026-11-03",
+  "assets": {
+    "directory": "./dist",
+    // page.html servie en /page (build.format "file", trailingSlash "never")
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

@@ -1,0 +1,40 @@
+---
+/*
+ * Une image du contenu (src/data/content.ts → Picture) : AVIF puis WebP, aux tailles écrites par
+ * scripts/assets/images.mjs, avec width/height (ratio réservé, pas de saut de mise en page).
+ * sizes : la largeur affichée de l'image selon l'écran (« (min-width: 48rem) 50vw, 100vw »), à écrire juste : c'est
+ * lui qui choisit la variante téléchargée.
+ * L'image LCP d'une page : loading="eager" et fetchpriority="high", plus un <link rel="preload"> dans le slot head
+ * de Base, avec les mêmes srcset (avif) et sizes, sinon elle est téléchargée deux fois.
+ * class remplace le dimensionnement par défaut de l'<img> (h-auto w-full) : « h-full w-full object-cover » pour une
+ * image qui couvre son parent.
+ */
+import type { Picture } from "../data/content";
+
+interface Props {
+  image: Picture;
+  sizes: string;
+  loading?: "lazy" | "eager";
+  fetchpriority?: "high" | "auto";
+  class?: string;
+  style?: string;
+}
+
+const { image, sizes, loading = "lazy", fetchpriority = "auto", class: className = "h-auto w-full", style } = Astro.props;
+---
+
+<picture>
+  <source type="image/avif" srcset={image.avif} sizes={sizes} />
+  <source type="image/webp" srcset={image.webp} sizes={sizes} />
+  <img
+    src={image.src}
+    width={image.width}
+    height={image.height}
+    alt={image.alt}
+    loading={loading}
+    decoding="async"
+    fetchpriority={fetchpriority}
+    class={className}
+    style={style}
+  />
+</picture>
