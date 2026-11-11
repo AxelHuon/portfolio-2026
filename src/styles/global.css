@@ -140,13 +140,14 @@
     inset: 0;
     background: var(--color-loader);
   }
-  /* le nom du header, à sa place exacte (Header.astro, .site-name : marge --spacing-gutter, centré dans
-     --spacing-header, 500, 1.0625rem) */
+  /* le logo et le nom du header, à leur place exacte (Header.astro, .site-name : marge --spacing-gutter, centrés dans
+     --spacing-header, écart 0.625rem, 500, 1.0625rem) */
   .loader-name {
     position: absolute;
     top: 0;
     left: var(--spacing-gutter);
     display: flex;
+    gap: 0.625rem;
     align-items: center;
     height: var(--spacing-header);
     font-weight: 500;

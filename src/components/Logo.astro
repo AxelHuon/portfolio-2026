@@ -1,0 +1,24 @@
+---
+/*
+ * Le logo d'Axel, dans la page : un SVG qui prend la couleur du texte (currentColor). Sa seule source est
+ * src/assets/logo.svg (les icônes du site en sortent aussi : scripts/assets/icons.mjs). Décoratif, toujours à côté du
+ * nom : aria-hidden. Même taille dans le header et le loader (le nom du loader se pose sur celui du header).
+ */
+import source from "../assets/logo.svg?raw";
+
+const viewBox = /viewBox="([^"]+)"/.exec(source)?.[1] ?? "0 0 336 295";
+const [, , width, height] = viewBox.split(/\s+/).map(Number);
+const paths = Array.from(source.matchAll(/\sd="([^"]+)"/g), (match) => match[1]);
+---
+
+<svg class="logo" viewBox={viewBox} width={width} height={height} fill="currentColor" aria-hidden="true" focusable="false">
+  {paths.map((d) => <path d={d} />)}
+</svg>
+
+<style>
+  .logo {
+    flex: none;
+    width: auto;
+    height: 1.25rem;
+  }
+</style>

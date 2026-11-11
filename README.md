@@ -44,7 +44,9 @@ crédits sont épuisés.
 - `src/data/site.ts` : contact, réseaux, mentions légales (encore les valeurs d'exemple).
 - `src/data/content.ts` : l'à-propos et les projets (encore ceux de la démo, images de `public/img/demo/`).
 - `wrangler.jsonc` : `name` (le Worker Cloudflare).
-- Icônes : `node scripts/assets/icons.mjs sources/logo.png "#06122b"`.
+- Icônes : `node scripts/assets/icons.mjs` (depuis `src/assets/logo.svg`, sur `#06122b` : favicon SVG et ICO,
+  apple-touch-icon, icônes du manifeste dont une maskable). Le logo du header et du loader lit le même SVG
+  (`src/components/Logo.astro`).
 - Image de partage : `node scripts/assets/images.mjs sources/partage.jpg og original "" v2 --og`
   (`public/og-v2.jpg`, puis `site.ogImage` et `public/_headers`).
 - **Cloudflare.** Workers & Pages → Create → importer le dépôt : commande de build `pnpm build`, déploiement
@@ -60,7 +62,7 @@ public/_headers             cache immutable des fichiers versionnés, CSP et en-
 src/data/site.ts            réglages en code : identité, navigation, SEO, contact, mentions, micro-textes, JSON-LD
 src/data/content.ts         le contenu (accueil, à propos, projets) : importé par les .astro seulement
 src/layouts/Base.astro      le layout : SEO, polices, loader, ClientRouter, header, footer, démarrage des scripts
-src/components/             Header (pilule « Menu » et petit panneau), Footer, Picture, ProjectCard, ExternalLink
+src/components/             Header (bouton « Menu » et petit panneau), Footer, Picture, ProjectCard, ExternalLink
 src/pages/                  accueil, about, projects et fiches, contact, legal (mentions légales), 404, robots.txt, manifeste
 src/styles/global.css       Tailwind 4, tokens du projet, loader, état caché avant une entrée, base accessible
 src/scripts/app.ts          cycle de vie avec le ClientRouter
@@ -119,7 +121,8 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   au point et le dézoom autour du visage (`onLoaderProgress` → `home.ts`, `DEZOOM` → `setIntro` de `hero-flow.ts`). Par-dessus, le nom à la place exacte de celui du
   header (qui le relaie sans saut) et, en bas, une barre de chargement sur toute la largeur, son pourcentage en
   grand au-dessus, qui suit la tête de la barre. La progression monte
-  seule jusqu'à 86, puis attend la page et les polices ; à 100, l'image est nette, le nom et la barre s'effacent
+  seule jusqu'à 90 en 1,6 s, puis avance lentement jusqu'à 97 tant que la page et les polices ne sont pas prêtes
+  (jamais figée) ; à 100, l'image est nette, le nom et la barre s'effacent
   et `afterLoader()` résout : le module de page y cale son entrée (le nom du hero lettre par lettre, le métier, le
   menu). Affiché par le CSS dès la première peinture, sous `html.js` et au premier chargement seulement. Filet CSS :
   masqué à 6 s si le JS ne prend pas la main.

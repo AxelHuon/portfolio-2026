@@ -1,9 +1,9 @@
 /*
- * Le menu (Header.astro) : la pilule « Menu » ouvre un petit panneau sous elle (les liens, l'e-mail, les profils). Un
+ * Le menu (Header.astro) : le bouton « Menu » ouvre un petit panneau sous elle (les liens, l'e-mail, les profils). Un
  * disclosure non modal : aria-expanded sur le bouton, le panneau en hidden quand il est fermé ; la page reste
  * utilisable derrière.
- * Apparition (GSAP) : le panneau passe du flou au net en fondu, comme la mise au point du loader ; les deux traits du
- * bouton se croisent en X. Le flou (filter) déroge à la règle « transform, opacity, clip-path » : voulu par Axel
+ * Apparition (GSAP) : le panneau passe du flou au net en fondu, comme la mise au point du loader (le « + » du bouton
+ * pivote en « × » par le CSS, sur aria-expanded). Le flou (filter) déroge à la règle « transform, opacity, clip-path » : voulu par Axel
  * (11 novembre 2026), sur un petit panneau et le temps d'une demi-seconde ; il est retiré une fois le panneau net (un
  * filtre resté posé peut adoucir le texte). La fermeture joue l'apparition à l'envers, plus vite, puis rend le panneau
  * hidden. Mouvement réduit : sans animation.
@@ -24,13 +24,9 @@ export function mountMenu(): () => void {
   const toggle = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
   const panel = document.getElementById("site-menu");
   if (!toggle || !panel) return () => {};
-  const bars = Array.from(toggle.querySelectorAll<HTMLElement>("[data-menu-bar]"));
 
   let open = false;
   let timeline: gsap.core.Timeline | null = null;
-
-  // les traits se rejoignent au milieu de l'icône avant de pivoter : l'écart se mesure (l'icône est en rem)
-  const toMiddle = (bar: HTMLElement) => ((bar.parentElement?.clientHeight ?? 0) - bar.offsetHeight) / 2;
 
   const build = () =>
     gsap
@@ -50,17 +46,6 @@ export function mountMenu(): () => void {
           ease: "power2.out",
           onComplete: () => gsap.set(panel, { clearProps: "filter" }),
         },
-      )
-      .fromTo(
-        bars,
-        { y: 0, rotation: 0 },
-        {
-          y: (index: number, bar: HTMLElement) => (index === 0 ? 1 : -1) * toMiddle(bar),
-          rotation: (index: number) => (index === 0 ? 45 : -45),
-          duration: 0.4,
-          ease: "power2.out",
-        },
-        0,
       );
 
   const onKeydown = (event: KeyboardEvent) => {
@@ -83,7 +68,7 @@ export function mountMenu(): () => void {
     toggle.setAttribute("aria-expanded", "true");
     panel.hidden = false;
     timeline ??= build();
-    // mouvement réduit : l'état ouvert d'un coup (le X du bouton compris)
+    // mouvement réduit : l'état ouvert d'un coup
     if (isReduced()) timeline.pause().progress(1);
     else timeline.timeScale(1).play();
     document.addEventListener("keydown", onKeydown);

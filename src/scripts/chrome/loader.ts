@@ -7,9 +7,11 @@
  * La mise au point : pas d'écran à part. Un aplat bleu le temps que la page soit prête (PageInstance.ready, plafonné
  * à MAX_WAIT), puis il s'efface sur la page ; sur l'accueil, le hero y est très flou et sombre, et chaque pas de la
  * progression est donné aux abonnés (onLoaderProgress) : home.ts en fait la mise au point du hero. Par-dessus, le nom
- * à la place de celui du header et, en bas, une barre de chargement dont le pourcentage suit la tête. runLoader (app.ts, une fois) prend la main : la progression
- * monte seule jusqu'à CRAWL.to, puis attend la page et les polices, et finit à 100 (l'image est nette). Sortie : le
- * nom et le compteur s'effacent, le loader est retiré.
+ * à la place de celui du header et, en bas, une barre de chargement dont le pourcentage suit la tête. runLoader (app.ts,
+ * une fois) prend la main : la progression monte seule jusqu'à CRAWL.to ; si la page ou les polices ne sont pas
+ * prêtes, elle avance encore, lentement, jusqu'à CREEP.to (jamais figée : elle restait plantée à 86 %, retour d'Axel
+ * du 11 novembre 2026) ; tout prêt, elle file à 100 sans pause (l'image est nette). Sortie : le nom et le compteur
+ * s'effacent, le loader est retiré.
  * afterLoader() résout à ce moment : le module de page y cale son entrée (le nom du hero, le header). Le défilement est
  * bloqué jusque-là (html.is-loading ; un module qui crée Lenis l'arrête lui-même jusqu'à afterLoader).
  * Mouvement réduit : pas de course, un fondu court.
@@ -19,10 +21,14 @@ import { isReduced } from "../lib/root";
 
 /** Plafond d'attente de la page, en ms : au-delà, le loader part quand même, rien ne reste caché */
 const MAX_WAIT = 6000;
-/** La progression sans attendre la page : elle n'atteint 100 que la page prête */
-const CRAWL = { duration: 2.2, to: 0.86 } as const;
+/**
+ * La progression sans attendre la page (s, de 0 à 1) : la montée, puis la lente avancée tant que la page n'est pas
+ * prête ; elle n'atteint 100 que la page prête
+ */
+const CRAWL = { duration: 1.6, to: 0.9 } as const;
+const CREEP = { duration: 4.4, to: 0.97 } as const;
 /** En s : l'aplat qui s'efface sur la page prête, la fin de la mise au point, la sortie du nom et du compteur */
-const EXIT = { reveal: 0.8, count: 1.1, out: 0.45 } as const;
+const EXIT = { reveal: 0.8, count: 0.9, out: 0.45 } as const;
 const LOCK = "is-loading";
 
 let gone: Promise<void> = Promise.resolve();
@@ -92,10 +98,17 @@ export function runLoader(ready: Promise<unknown>): void {
   };
 
   const reduced = isReduced();
-  const crawl = reduced ? null : gsap.to(progress, { value: CRAWL.to, duration: CRAWL.duration, ease: "power2.out", onUpdate: paint });
+  // la montée, sans ralentir jusqu'à l'arrêt, puis l'avancée lente : le pourcentage bouge toujours
+  const crawl = reduced
+    ? null
+    : gsap
+        .timeline()
+        .to(progress, { value: CRAWL.to, duration: CRAWL.duration, ease: "power1.out", onUpdate: paint })
+        .to(progress, { value: CREEP.to, duration: CREEP.duration, ease: "sine.out", onUpdate: paint });
   const page = Promise.race([Promise.resolve(ready).catch(() => undefined), wait(MAX_WAIT)]);
   const fonts = document.fonts.ready.catch(() => undefined);
-  const crawled = crawl ? new Promise<void>((resolve) => crawl.eventCallback("onComplete", () => resolve())) : Promise.resolve();
+  // la montée faite (l'avancée lente continue en attendant le reste)
+  const crawled = crawl ? new Promise<void>((resolve) => crawl.call(resolve, undefined, CRAWL.duration)) : Promise.resolve();
 
   // la page prête : l'aplat s'efface, la page apparaît dessous (sur l'accueil, floue, en train de se mettre au point)
   void page.then(() => {
@@ -113,8 +126,8 @@ export function runLoader(ready: Promise<unknown>): void {
       }
       gsap
         .timeline({ onComplete: finish, onInterrupt: finish })
-        // la fin de la progression : la mise au point s'achève, l'image est nette (l'aplat a fini de s'effacer)
-        .to(progress, { value: 1, duration: EXIT.count, ease: "power2.inOut", onUpdate: paint }, `+=${EXIT.reveal * 0.5}`)
+        // la fin de la progression, tout de suite et sans démarrage lent : la mise au point s'achève, l'image est nette
+        .to(progress, { value: 1, duration: EXIT.count, ease: "power2.out", onUpdate: paint })
         // le nom (relayé par celui du header) et la barre s'effacent
         .to(metas, { opacity: 0, duration: EXIT.out, ease: "power1.in" }, "+=0.1");
     })

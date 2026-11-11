@@ -100,7 +100,8 @@ export const legal = {
     address: "101 Townsend St, San Francisco, CA 94107, USA",
     phone: "+1 (650) 319-8930",
   },
-  credits: ["Photography: photographer's name"],
+  /** crédits affichés en bas des mentions (une ligne chacun) ; vide : la section n'apparaît pas */
+  credits: [] as readonly string[],
 } as const;
 
 /** Micro-textes d'interface, tous ici */

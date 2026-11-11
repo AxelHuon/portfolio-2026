@@ -14,6 +14,7 @@ import "../styles/global.css";
 import { UNLISTED } from "../../site.config.mjs";
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
+import Logo from "../components/Logo.astro";
 import { pageMeta, site, siteJsonLd, uiText, type OgImage, type PageId } from "../data/site";
 
 interface Props {
@@ -76,10 +77,13 @@ const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.js
        les titres et le loader, affichés dès la première peinture */
     }
     <Font cssVariable="--font-body" preload={[{ weight: 400 }, { weight: 500 }]} />
-    {/* ICO pour les vieux navigateurs, PNG 32 px pour les onglets, 192 px pour Google, apple-touch-icon opaque */}
+    {
+      /* le logo (scripts/assets/icons.mjs) : SVG pour les navigateurs récents ; ICO (16, 32, 48 px) pour les autres et
+       Google, déclaré 32x32 pour que Chrome préfère le SVG ; apple-touch-icon opaque ; 192, 512 et maskable dans le
+       manifeste */
+    }
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
-    <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
-    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta property="og:type" content={type} />
@@ -110,7 +114,7 @@ const jsonLd = JSON.stringify(siteJsonLd(origin, page === "home", Astro.props.js
     }
     <div id="loader" class="loader" aria-hidden="true">
       <div class="loader-bg" data-loader-bg></div>
-      <p class="loader-name" data-loader-meta>{site.name}</p>
+      <p class="loader-name" data-loader-meta><Logo />{site.name}</p>
       <div class="loader-progress" data-loader-meta>
         <p class="loader-count" data-loader-label><span data-loader-count>0</span></p>
         <div class="loader-track" data-loader-track><span class="loader-fill" data-loader-fill></span></div>

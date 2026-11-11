@@ -1,15 +1,17 @@
 ---
 /*
- * En-tête : le nom du site à gauche, posé en haut de page (absolu : il défile avec elle) ; à droite, fixée pour rester
- * à portée au défilement, une pilule « Menu » qui déplie un petit panneau (src/scripts/chrome/menu.ts) : les liens, un
+ * En-tête : le logo et le nom du site à gauche, posé en haut de page (absolu : il défile avec elle) ; à droite, fixée pour rester
+ * à portée au défilement, un bouton « Menu » qui ouvre un petit panneau (src/scripts/chrome/menu.ts) : les liens, un
  * filet, l'e-mail et les profils (GitHub, LinkedIn). L'idée d'un menu compact vient d'une référence d'Axel (11 novembre 2026), le
- * dessin est celui du site : bleu nuit, Satoshi, point bleu ciel pour la page courante.
+ * dessin est celui du site : bleu nuit, Satoshi, point bleu ciel pour la page courante. Le bouton est de la même matière
+ * que le panneau (bleu nuit, bordure fine) : un « + » à côté du libellé, qui pivote en « × » à l'ouverture.
  * Le header occupe --spacing-header, réservé en haut de main ; le hero de l'accueil remonte dessous. Le nom du loader
  * (global.css, .loader-name) se pose exactement sur le sien : à changer ensemble.
  * Sans JS : pas de menu, les liens restent affichés en ligne (variante no-js de global.css).
  * Non persistant : remplacé à chaque navigation, son aria-current vient du serveur.
  */
 import { contact, nav, site, uiText, type PageId } from "../data/site";
+import Logo from "./Logo.astro";
 
 interface Props {
   page: PageId;
@@ -20,7 +22,7 @@ const current = (id: string) => (id === page ? "page" : undefined);
 ---
 
 <header id="site-header" class="site-header">
-  <a href="/" class="site-name" aria-current={current("home")}>{site.name}</a>
+  <a href="/" class="site-name" aria-current={current("home")}><Logo />{site.name}</a>
 
   {/* sans JS seulement : les liens en ligne */}
   <nav aria-label={uiText.mainNav} class="hidden no-js:block">
@@ -39,8 +41,8 @@ const current = (id: string) => (id === page ? "page" : undefined);
 
   <div class="actions" data-header-actions>
     <button type="button" class="toggle" data-menu-toggle aria-expanded="false" aria-controls="site-menu">
-      <span class="open">{uiText.menu}</span><span class="close">{uiText.close}</span>
-      <span class="icon" aria-hidden="true"><span data-menu-bar></span><span data-menu-bar></span></span>
+      {uiText.menu}
+      <span class="plus" aria-hidden="true"></span>
     </button>
   </div>
 
@@ -91,64 +93,81 @@ const current = (id: string) => (id === page ? "page" : undefined);
     min-height: var(--spacing-header);
     padding: 0 var(--spacing-gutter);
   }
+  /* le logo puis le nom ; le loader reprend exactement cette mise en page (global.css, .loader-name) */
   .site-name {
+    display: flex;
+    gap: 0.625rem;
+    align-items: center;
     font-weight: 500;
     font-size: 1.0625rem;
     letter-spacing: -0.01em;
   }
 
-  /* la pilule du menu : fixe, en haut à droite, centrée dans la hauteur du header */
+  /* le bouton du menu : fixe, en haut à droite, centré dans la hauteur du header */
   .actions {
     position: fixed;
-    top: calc((var(--spacing-header) - 3rem) / 2);
+    top: calc((var(--spacing-header) - 2.75rem) / 2);
     right: var(--spacing-gutter);
     z-index: 30;
   }
   :global(html:not(.js)) .actions {
     display: none;
   }
+  /* la même matière que le panneau : bleu nuit, bordure fine, qui s'éclaire au survol et menu ouvert */
   .toggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
-    min-height: 3rem;
-    padding: 0 1.25rem;
-    border-radius: 999px;
-    background: var(--color-foreground);
-    color: var(--color-background);
+    gap: 0.625rem;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 14%, transparent);
+    border-radius: 12px;
+    background: var(--color-background);
+    color: var(--color-foreground);
     font-weight: 500;
     font-size: 0.9375rem;
+    /* la bordure s'éclaire en douceur (retour d'Axel : trop brusque sans transition) */
+    transition: border-color 0.35s ease;
   }
-  /* le libellé suit l'état du bouton */
-  .toggle[aria-expanded="true"] .open,
-  .toggle[aria-expanded="false"] .close {
-    display: none;
+  .toggle:hover,
+  .toggle[aria-expanded="true"] {
+    border-color: color-mix(in srgb, var(--color-foreground) 34%, transparent);
   }
-  /* deux traits, que menu.ts croise en X à l'ouverture */
-  .icon {
+  /* le « + » en deux traits ; un quart de tour à 45° en fait un « × » */
+  .plus {
     position: relative;
-    width: 1rem;
+    width: 0.625rem;
     height: 0.625rem;
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .icon span {
+  .plus::before,
+  .plus::after {
+    content: "";
     position: absolute;
+    top: 50%;
     left: 0;
     width: 100%;
     height: 1.5px;
+    margin-top: -0.75px;
     border-radius: 1px;
     background: currentColor;
   }
-  .icon span:first-child {
-    top: 0;
+  .plus::after {
+    transform: rotate(90deg);
   }
-  .icon span:last-child {
-    bottom: 0;
+  .toggle[aria-expanded="true"] .plus {
+    transform: rotate(45deg);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plus {
+      transition: none;
+    }
   }
 
-  /* le panneau : une carte bleu nuit sous la pilule, alignée à droite ; menu.ts la fait apparaître (fondu, flou) */
+  /* le panneau : une carte bleu nuit sous le bouton, alignée à droite ; menu.ts la fait apparaître (fondu, flou) */
   .menu {
     position: fixed;
-    top: calc((var(--spacing-header) + 3rem) / 2 + 0.5rem);
+    top: calc((var(--spacing-header) + 2.75rem) / 2 + 0.5rem);
     right: var(--spacing-gutter);
     z-index: 30;
     width: min(18rem, calc(100vw - 2 * var(--spacing-gutter)));

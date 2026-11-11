@@ -40,7 +40,7 @@ const INTRO = {
  * content.ts). À 1,3, elle couvre toujours le hero malgré la rotation, du début à la fin du mouvement.
  */
 const ZOOM_FROM = { scale: 1.3, yPercent: 8, rotation: -3, transformOrigin: "72% 40%" } as const;
-/** La mise au point selon la progression du loader (0 à 1) : encore floue à 86 %, nette seulement à 100 */
+/** La mise au point selon la progression du loader (0 à 1) : encore floue à 90 %, nette seulement à 100 */
 const focusAt = (progress: number) => 1 - progress * progress;
 /** Le dézoom du premier chargement : l'image part agrandie de DEZOOM et revient à sa taille avec la mise au point */
 const DEZOOM = 0.22;
