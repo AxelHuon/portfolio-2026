@@ -61,7 +61,10 @@ import { MQ, matches } from "../lib/root";
  * max ; l'écart entre deux cartes, en part de leur largeur ; le rayon des coins
  */
 const GRID = { width: 0.27, narrow: 0.68, min: 240, max: 560, gap: 0.12, corner: 10 } as const;
-/** La courbure : au repos, ajoutée par 1 000 px/s de vitesse, et au plus (part de recul des coins de l'écran) */
+/**
+ * La courbure : au repos, ajoutée par 1 000 px/s de vitesse, et au plus (à peu près la part de recul des coins de
+ * l'écran ; le recul sature au loin, voir VERTEX)
+ */
 const CURVE = { base: 0.07, speed: 0.05, max: 0.16 } as const;
 /** Le recul pendant qu'on tient la toile, et son suivi (par 1/60 s) */
 const ZOOM = { held: 0.88, follow: 0.12 } as const;
@@ -110,10 +113,13 @@ const REVEAL = { spread: 0.5, from: 0.86 } as const;
  * pour qu'un téléphone tourné ne grossisse pas démesurément ; 1,45 jugé un peu trop zoomé) en se décalant (le centre du
  * disque, donc Paris : x et y, en part de l'écran, depuis son centre ; y vers le haut) et pivote de roll degrés autour
  * de Paris. Sur un écran large, l'Atlantique, à l'ouest, occupe la gauche, où la section pose son texte ; sur un écran
- * étroit (narrow), la France est en haut et le texte en bas. Sous le texte, les points s'effacent en dégradé vers le blanc pendant le zoom (clear, demande d'Axel du même
- * jour : le texte n'était pas lisible sur les gros points de la mer ; puis un dégradé plus long et plus doux, les points
- * passant la moitié de l'écran) : plus aucun jusqu'à clear[0] de l'écran (en largeur depuis la gauche, ou en hauteur
- * depuis le bas sur un écran étroit), puis de retour, peu à peu, jusqu'à clear[1] ; Paris jamais. La Terre en points (choix d'Axel sur
+ * étroit (narrow), le texte est en bas et la France dans la place libre au-dessus (setRoom, mesurée par la page), Paris
+ * à place de sa hauteur depuis le haut (jamais à moins de top de l'écran : le header) ; moins grossie que sur ordinateur (à 2, le titre passait sur la France, revu
+ * sur téléphone le 12 novembre 2026). Sous le texte, les points s'effacent en dégradé vers le blanc pendant le zoom
+ * (clear, demande d'Axel du même jour : le texte n'était pas lisible sur les gros points de la mer ; puis un dégradé
+ * plus long et plus doux, les points passant la moitié de l'écran) : sur un écran large, plus aucun jusqu'à
+ * clear.wide[0] de la largeur depuis la gauche, puis de retour, peu à peu, jusqu'à clear.wide[1] ; sur un écran
+ * étroit, plus aucun sous le haut du texte, puis de retour sur fade de la hauteur au-dessus ; Paris jamais. La Terre en points (choix d'Axel sur
  * maquettes) : un point tous les spacing degrés (0,9 : des points plus petits, retour d'Axel du 12 novembre 2026, à
  * 1,8 la France ne se reconnaissait pas), de rayon dot (part de l'écart), bleu foncé sur la terre, à ocean
  * d'opacité sur la mer ; Paris (le bleu ciel refusé, puis un point bleu foncé trop gros qui se fondait dans la France,
@@ -129,9 +135,9 @@ const GLOBE = {
   tilt: [0.46, 0.62],
   focus: [0.6, 0.84],
   wide: { radius: 1.25, x: 0.2, y: 0.02 },
-  narrow: { radius: 2, x: 0.06, y: 0.2 },
+  narrow: { radius: 1.5, x: 0.06, place: 0.45, top: 0.1 },
   roll: -16,
-  clear: { wide: [0.2, 0.68], narrow: [0.38, 0.66] },
+  clear: { wide: [0.2, 0.68], fade: 0.18 },
   start: 0.62,
   radius: 0.3,
   scale: 0.36,
@@ -201,9 +207,13 @@ const VERTEX = /* glsl */ `
       p = vec2(sin(lon) * cos(lat), sin(lat)) / uBend;
     }
     vFacing = facing;
-    // la toile bombée : plus un point est loin du centre de l'écran, plus il recule vers lui (1 dans les coins)
+    // la toile bombée : plus un point est loin du centre de l'écran, plus il recule vers lui (d'environ uCurve dans les
+    // coins, n² = 2). Le recul sature (tangente hyperbolique, jamais plus de la moitié) : sans cela, quand la courbure
+    // montait (défilement ou glisser rapides), les cartes tracées en marge hors champ passaient de l'autre côté du
+    // centre et traversaient l'écran en éclats (retour d'Axel sur capture, 12 novembre 2026). tanh(x) écrit à la main
     vec2 n = p / (0.5 * uView);
-    p *= 1.0 - uCurve * 0.5 * dot(n, n);
+    float e = exp(-2.0 * uCurve * dot(n, n));
+    p *= 1.0 - 0.5 * (1.0 - e) / (1.0 + e);
     gl_Position = projectionMatrix * viewMatrix * vec4(p, 0.0, 1.0);
   }
 `;
@@ -411,6 +421,11 @@ export interface WorkCanvas {
   setMorph(value: number): void;
   /** met en pause la vague du globe, qui bat sinon en continu (WCAG 2.2.2) */
   setPaused(paused: boolean): void;
+  /**
+   * sur un écran étroit, la place libre au-dessus du texte de la section About, une fois la Terre posée (part de
+   * l'écran, depuis le haut) : la France s'y place, les points s'effacent dessous
+   */
+  setRoom(value: number): void;
   /** met un projet en avant, les autres reculés et pâlis (null : tous égaux) ; l'index de la page, au clavier */
   highlight(project: number | null): void;
   destroy(): void;
@@ -562,6 +577,8 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
 
   /** un écran assez large pour deux colonnes (resize) : la Terre se range à gauche, sinon en haut */
   let wideScreen = true;
+  /** sur un écran étroit, la place libre au-dessus du texte de la section About (part de l'écran, depuis le haut) */
+  let room = 0.4;
   /** la grille : taille des cartes et pas entre deux cases (px), mis à jour par resize */
   const grid = { width: 1, height: 1, stepX: 1, stepY: 1 };
   /** Le projet d'une case : deux voisines (côtés et diagonales) ne montrent jamais le même */
@@ -614,6 +631,8 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
     const focus = inOut(part(GLOBE.focus));
     const framing = wideScreen ? GLOBE.wide : GLOBE.narrow;
     const zoomed = framing.radius * (wideScreen ? view.x : Math.min(view.x, view.y));
+    // sur un écran étroit, Paris dans la place libre au-dessus du texte (en part de l'écran, vers le haut depuis son centre)
+    const lift = wideScreen ? GLOBE.wide.y : 0.5 - Math.max(room * GLOBE.narrow.place, GLOBE.narrow.top);
     const earth = part(GLOBE.earth);
     return {
       wrap,
@@ -627,7 +646,7 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
       tilt: parisLat * inOut(part(GLOBE.tilt)),
       radius: radius * Math.pow(zoomed / radius, focus),
       x: framing.x * view.x * focus,
-      y: framing.y * view.y * focus,
+      y: lift * view.y * focus,
       roll: toRadians(GLOBE.roll) * focus,
       focus,
     };
@@ -738,7 +757,8 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
     earthMaterial.uniforms.uTilt.value = sphere.tilt;
     earthMaterial.uniforms.uRoll.value = sphere.roll;
     earthMaterial.uniforms.uClear.value = sphere.focus;
-    const [clearFrom, clearTo] = wideScreen ? GLOBE.clear.wide : GLOBE.clear.narrow;
+    // sur un écran étroit, en hauteur depuis le bas : plus aucun point sous le haut du texte
+    const [clearFrom, clearTo] = wideScreen ? GLOBE.clear.wide : [1 - room, Math.min(1 - room + GLOBE.clear.fade, 1)];
     (earthMaterial.uniforms.uClearRange.value as Vector2).set(clearFrom, clearTo);
     earthMaterial.uniforms.uClearVertical.value = wideScreen ? 0 : 1;
     earthMaterial.uniforms.uTime.value = wave.time;
@@ -784,7 +804,7 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
     for (let step = 0; step < 4; step++) {
       const nx = px / (0.5 * view.x);
       const ny = py / (0.5 * view.y);
-      const factor = 1 - current.curve * 0.5 * (nx * nx + ny * ny);
+      const factor = 1 - 0.5 * Math.tanh(current.curve * (nx * nx + ny * ny));
       px = sx / factor;
       py = sy / factor;
     }
@@ -1099,6 +1119,10 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
     },
     setPaused(paused) {
       wave.paused = paused;
+      wake();
+    },
+    setRoom(value) {
+      room = clamp(value, 0.15, 0.9);
       wake();
     },
     setMorph(value) {

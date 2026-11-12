@@ -89,9 +89,13 @@ const RISE = { duration: 1.1, stagger: 0.08, start: "top 88%" } as const;
  * éléments disparaître », puis, le même jour, plus vite, sans le changement de couleur) : la
  * durée de l'épinglage (en écrans : le temps que les projets montent par-dessus), la montée des éléments qui s'en vont
  * (en écrans), et [début, fin], en part de l'épinglage, du départ de la carte du portrait, puis de celui du texte (le
- * titre, les services, l'appel, l'un après l'autre)
+ * titre, les services, l'appel, l'un après l'autre). Sans la scène (téléphone, tablette), les services, empilés, sont
+ * plus hauts que l'écran : le texte part plus tôt (stacked), et la section finit par un blanc (index.astro) qui place
+ * l'appel aux deux tiers de l'écran quand l'épinglage commence ; ainsi tout est parti avant que les projets, qui
+ * montent du bas, n'arrivent dessous (retour d'Axel, 12 novembre 2026 : sur téléphone, la feuille des projets coupait
+ * E-commerce et l'appel presque aussitôt affichés)
  */
-const PIN = { length: 1, rise: 0.08, card: [0, 0.35], text: [0.05, 0.6] } as const;
+const PIN = { length: 1, rise: 0.08, card: [0, 0.35], text: [0.05, 0.6], stacked: [0, 0.4] } as const;
 /**
  * Les projets : la distance (rootMargin) à laquelle la toile se charge (assez tôt pour être prête à l'arrivée : la
  * section change alors de hauteur, hors de l'écran) ; la scène collée, en écrans (le CSS de index.astro en fixe la
@@ -307,7 +311,9 @@ export function init(kind: Kind): PageInstance {
   // section (sa colonne est animée par la scène)
   const servicesPin = document.querySelector<HTMLElement>("[data-services-pin]");
   if (services && servicesPin) {
-    mm.add(MQ.motion, () => {
+    // refait en passant d'un côté à l'autre de SCENE (le texte ne part pas au même rythme)
+    mm.add({ motion: MQ.motion, scene: SCENE.query }, (context) => {
+      if (!context.conditions?.motion) return;
       const texts = services.querySelectorAll<HTMLElement>(".services-head, .service, .services-cta");
       const timeline = gsap.timeline({
         defaults: { ease: "power1.in" },
@@ -324,7 +330,7 @@ export function init(kind: Kind): PageInstance {
       });
       const [cardFrom, cardTo] = PIN.card;
       if (hero) timeline.to(hero, { opacity: 0, y: () => -PIN.rise * window.innerHeight, duration: cardTo - cardFrom }, cardFrom);
-      const [textFrom, textTo] = PIN.text;
+      const [textFrom, textTo] = context.conditions?.scene ? PIN.text : PIN.stacked;
       timeline.to(
         texts,
         {
@@ -459,6 +465,18 @@ export function init(kind: Kind): PageInstance {
       };
       pauseButton?.addEventListener("click", onPause);
 
+      // sur un écran étroit, la France se pose au-dessus du texte de la section About : la place libre au-dessus de sa
+      // fiche, une fois la Terre posée (la section, remontée d'un écran, est alors alignée sur la scène), en part de
+      // l'écran ; remesurée à chaque refresh (taille de l'écran, police chargée)
+      const about = document.querySelector<HTMLElement>("[data-about]");
+      const aboutCard = about?.querySelector<HTMLElement>("[data-about-card]");
+      const measureRoom = () => {
+        if (!gallery || !about || !aboutCard || !workStage.clientHeight) return;
+        const offset = aboutCard.getBoundingClientRect().top - about.getBoundingClientRect().top;
+        gallery.setRoom(offset / workStage.clientHeight);
+      };
+      ScrollTrigger.addEventListener("refresh", measureRoom);
+
       const fail = () => {
         work.dataset.gl = "off";
         ScrollTrigger.refresh();
@@ -517,6 +535,7 @@ export function init(kind: Kind): PageInstance {
       return () => {
         live = false;
         near.disconnect();
+        ScrollTrigger.removeEventListener("refresh", measureRoom);
         workStage.removeEventListener("pointermove", onStageMove);
         for (const remove of listeners) remove();
         gallery?.destroy();

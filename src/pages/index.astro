@@ -210,10 +210,10 @@ const pad = (value: number) => String(value).padStart(2, "0");
       haut, transparente, et monte à côté de la Terre qui se range dans sa colonne de gauche (gl/work-canvas.ts) ; son
       titre monte de son masque en arrivant (data-rise, comme les services)
     */}
-    <section class="about" aria-labelledby="about-title">
+    <section class="about" data-about aria-labelledby="about-title">
       {/* la fiche d'identité (choix d'Axel sur maquettes, 12 novembre 2026) : le titre, une phrase, des lignes entre
           des filets, puis le lien de contact */}
-      <div class="about-card">
+      <div class="about-card" data-about-card>
         <h2 id="about-title" class="about-title">
           <span class="mask"><span data-rise>{homeAbout.title}</span></span>
         </h2>
@@ -529,10 +529,14 @@ const pad = (value: number) => String(value).padStart(2, "0");
   }
 
   /* La fin des services, épinglée (home.ts, PIN) : la section fait au moins un écran (son contenu y tient sur un écran
-     large : épinglée, elle est entière à l'écran) ; les projets montent par-dessus pendant que ses éléments s'en vont */
+     large : épinglée, elle est entière à l'écran) ; les projets montent par-dessus pendant que ses éléments s'en vont.
+     Sans la scène (téléphone, tablette : la scène, plus bas, remet sa marge), les services empilés dépassent l'écran : un
+     blanc d'un tiers d'écran sous l'appel, pour qu'à l'épinglage il soit encore lisible, aux deux tiers de l'écran, et
+     parte avant que les projets n'arrivent dessous (PIN.stacked) */
   @media (prefers-reduced-motion: no-preference) {
     :global(html.js) .services {
       min-height: 100dvh;
+      padding-bottom: 36svh;
     }
   }
 

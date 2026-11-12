@@ -166,9 +166,12 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   blanc. La transition (plus vite, sans changement de couleur, demande d'Axel du 12 novembre 2026) : quand le bas des
   services touche celui de l'écran, leur conteneur (`.services-pin`) est épinglé un écran (ScrollTrigger `pin`, sans
   place réservée, `PIN`) ; les projets (blancs aussi) montent par-dessus pendant que la carte du portrait, puis le titre, les services
-  et l'appel s'en vont vers le haut, et leurs cartes apparaissent du centre vers les bords. La toile : une grille de grandes cartes 3:2
+  et l'appel s'en vont vers le haut, et leurs cartes apparaissent du centre vers les bords. Sur téléphone et tablette
+  (sans la scène), les services, empilés, dépassent l'écran : un blanc d'un tiers d'écran sous l'appel et un départ
+  plus tôt (`PIN.stacked`) font que tout est parti avant que les projets n'arrivent dessous. La toile : une grille de grandes cartes 3:2
   sans bord, colonnes décalées, deux voisines jamais du même projet ; un peu bombée (ses bords reculent), plus encore
-  avec la vitesse. La scène se colle 150 svh (CSS sticky) et la toile défile avec la page ; on la glisse aussi (souris :
+  avec la vitesse ; le recul sature au loin (tangente hyperbolique), sinon les cartes hors champ traversaient l'écran
+  en éclats quand on défilait vite. La scène se colle 150 svh (CSS sticky) et la toile défile avec la page ; on la glisse aussi (souris :
   dans tous les sens ; toucher : à l'horizontale), avec de l'élan, et elle recule un peu pendant qu'on la tient. Le
   défilement de la page n'est jamais retenu. Au survol, la carte visée se bombe autour du pointeur, sa forme (bords compris) comme son image, comme sous une goutte d'eau, la bosse suivant la souris et s'étirant dans le sens du geste (`DISTORT`, vertex et fragment shaders) ; elle grandit un peu, les autres rétrécissent et pâlissent vers le blanc (`FOCUS`) ; une
   étiquette suit le pointeur avec le nom du projet ; un clic ouvre son site. L'index des projets (leurs liens) n'apparaît qu'au clavier
@@ -185,7 +188,8 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   Une vague organique part de Paris et traverse les points (ils grossissent à son passage ; sur la mer, ils foncent ;
   `WAVE`) : elle bat en continu tant que la Terre est à l'écran, avec un bouton de pause en bas à droite (WCAG 2.2.2). Puis on zoome sur la France, l'axe pivotant (Paris à droite,
   l'Atlantique à gauche, `GLOBE.focus`), pendant que la section About (`homeAbout` dans `content.ts`, premier jet), blanche, monte à côté : une fiche
-  d'identité (le titre, une phrase personnelle, des lignes Location, Age, Status entre des filets, « Get in touch ») ; son texte se pose à gauche, sur l'Atlantique (sur mobile : la France en haut, le texte en bas) ; elle
+  d'identité (le titre, une phrase personnelle, des lignes Location, Age, Status entre des filets, « Get in touch ») ; son texte se pose à gauche, sur l'Atlantique (sur mobile : le texte en bas, la France dans la place libre au-dessus, mesurée par la page, `setRoom`, et les
+  points effacés sous le texte) ; elle
   recouvre la scène d'un écran, transparente, et elles repartent ensemble. Essayés et refusés : un point bleu ciel pour
   Paris, un zoom sur Paris vers une section About bleu ciel, deux anneaux fins au rythme du défilement, la Terre rangée
   dans la colonne de gauche. Le masque des terres : `node scripts/assets/globe-mask.mjs`
