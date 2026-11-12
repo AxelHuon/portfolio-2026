@@ -246,6 +246,14 @@ const pad = (value: number) => String(value).padStart(2, "0");
     position: relative;
     margin-top: calc(-1 * var(--spacing-header));
   }
+  /* avec le mouvement, des sections transparentes se superposent (les projets sur les services épinglés, About sur la
+     fin des projets) : dessous, du blanc, jamais le bleu nuit de la page (retours d'Axel du 12 novembre 2026 : sur
+     téléphone, la fin de la fiche About passait sur ce bleu) */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .stage {
+      background: #fff;
+    }
+  }
   .hero {
     position: relative;
     isolation: isolate;
@@ -529,14 +537,11 @@ const pad = (value: number) => String(value).padStart(2, "0");
   }
 
   /* La fin des services, épinglée (home.ts, PIN) : la section fait au moins un écran (son contenu y tient sur un écran
-     large : épinglée, elle est entière à l'écran) ; les projets montent par-dessus pendant que ses éléments s'en vont.
-     Sans la scène (téléphone, tablette : la scène, plus bas, remet sa marge), les services empilés dépassent l'écran : un
-     blanc d'un tiers d'écran sous l'appel, pour qu'à l'épinglage il soit encore lisible, aux deux tiers de l'écran, et
-     parte avant que les projets n'arrivent dessous (PIN.stacked) */
+     large : épinglée, elle est entière à l'écran) ; ses éléments s'en vont et les cartes des projets apparaissent sur
+     place, par-dessus (plus bas, .work) */
   @media (prefers-reduced-motion: no-preference) {
     :global(html.js) .services {
       min-height: 100dvh;
-      padding-bottom: 36svh;
     }
   }
 
@@ -591,12 +596,17 @@ const pad = (value: number) => String(value).padStart(2, "0");
     }
   }
 
-  /* La toile infinie (avec la transition) : la section, blanche, monte par-dessus les services épinglés (z-index 3)
-     pendant que leurs éléments s'en vont (home.ts, PIN). Tant que la toile n'est pas prête (data-gl « pending », ou « off » après un
-     échec), la grille de cartes reste. Toile prête (« on », home.ts) : la scène se colle en haut pendant 150 svh de
-     défilement, la toile défile avec ; le titre en haut, l'invitation à glisser en bas à droite, l'étiquette du projet qui suit le pointeur ; l'index des projets (leurs liens) n'apparaît qu'au clavier.
-     Le titre, l'index et l'invitation apparaissent avec les cartes
-     (--work-reveal, posé par home.ts) */
+  /* La toile infinie (avec la transition) : elle apparaît sur place, par-dessus les services épinglés (z-index 3),
+     pendant que leurs éléments s'en vont (home.ts, PIN et WORK.entry). Avant, la section, blanche, montait du bas : avec
+     les services déjà partis, une moitié d'écran vide, puis les cartes coupées net par le haut du canvas (retours
+     d'Axel sur captures, 12 novembre 2026, sur ordinateur comme sur téléphone). Elle commence donc un écran plus haut
+     (son haut touche celui de l'écran quand l'épinglage commence), transparente (le blanc est celui de .stage) ; ses
+     cartes, qui ne la touchent qu'une fois là
+     (data-shown), naissent du centre. Tant que la toile n'est pas prête (data-gl « pending », ou « off » après un
+     échec), la grille de cartes reste. Toile prête (« on », home.ts) : la scène se colle en haut ; l'entrée (un écran),
+     puis 150 svh de défilement où la toile défile avec, puis la fin de la section ; le titre en haut, l'invitation à
+     glisser en bas à droite, l'étiquette du projet qui suit le pointeur ; l'index des projets (leurs liens) n'apparaît
+     qu'au clavier. Le titre, l'index et l'invitation apparaissent avec les cartes (--work-reveal, posé par home.ts) */
   @media (prefers-reduced-motion: no-preference) {
     :global(html.js) .work[data-gl="on"] {
       --work-reveal: 0;
@@ -604,8 +614,14 @@ const pad = (value: number) => String(value).padStart(2, "0");
       --work-paris: 0;
       /* le titre, l'index et l'invitation : là une fois les cartes arrivées, partis dès que la toile s'enroule */
       --work-text: calc(clamp(0, (var(--work-reveal) - 0.6) / 0.4, 1) * clamp(0, 1 - var(--work-morph) * 8, 1));
-      height: 550svh;
+      height: 650svh;
+      margin-top: -100svh;
       padding: 0;
+      background: none;
+      pointer-events: none;
+    }
+    :global(html.js) .work[data-gl="on"][data-shown] .work-stage {
+      pointer-events: auto;
     }
     :global(html.js) .work[data-gl="on"] .work-stage {
       position: sticky;
@@ -869,6 +885,7 @@ const pad = (value: number) => String(value).padStart(2, "0");
     font-size: clamp(1.125rem, 1.6vw, 1.375rem);
   }
   @media (prefers-reduced-motion: no-preference) {
+    /* transparente sur la fin de la scène (au-delà, sur un téléphone où la fiche dépasse l'écran, le blanc de .stage) */
     :global(html.js) .work[data-gl="on"] + .about {
       margin-top: -100svh;
       background: none;

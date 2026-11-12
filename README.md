@@ -165,13 +165,14 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   et une mise au point en profondeur refusées). Fond blanc, comme les services ; le footer de l'accueil suit en
   blanc. La transition (plus vite, sans changement de couleur, demande d'Axel du 12 novembre 2026) : quand le bas des
   services touche celui de l'écran, leur conteneur (`.services-pin`) est épinglé un écran (ScrollTrigger `pin`, sans
-  place réservée, `PIN`) ; les projets (blancs aussi) montent par-dessus pendant que la carte du portrait, puis le titre, les services
-  et l'appel s'en vont vers le haut, et leurs cartes apparaissent du centre vers les bords. Sur téléphone et tablette
-  (sans la scène), les services, empilés, dépassent l'écran : un blanc d'un tiers d'écran sous l'appel et un départ
-  plus tôt (`PIN.stacked`) font que tout est parti avant que les projets n'arrivent dessous. La toile : une grille de grandes cartes 3:2
+  place réservée, `PIN`) ; la carte du portrait, puis le titre, les services et l'appel s'en vont vers le haut, et les
+  cartes des projets naissent sur place, du centre vers les bords (`WORK.entry`) : la section, remontée d'un écran et
+  transparente, est déjà collée par-dessus (elle ne prend le pointeur qu'une fois ses cartes là, `data-shown`), sur le
+  blanc de `.stage`. Avant, elle montait du bas, blanche : une moitié d'écran vide, puis les cartes coupées net par le
+  haut du canvas, sur ordinateur comme sur téléphone. La toile : une grille de grandes cartes 3:2
   sans bord, colonnes décalées, deux voisines jamais du même projet ; un peu bombée (ses bords reculent), plus encore
   avec la vitesse ; le recul sature au loin (tangente hyperbolique), sinon les cartes hors champ traversaient l'écran
-  en éclats quand on défilait vite. La scène se colle 150 svh (CSS sticky) et la toile défile avec la page ; on la glisse aussi (souris :
+  en éclats quand on défilait vite. La scène se colle (CSS sticky) : un écran d'entrée, puis 150 svh où la toile défile avec la page ; on la glisse aussi (souris :
   dans tous les sens ; toucher : à l'horizontale), avec de l'élan, et elle recule un peu pendant qu'on la tient. Le
   défilement de la page n'est jamais retenu. Au survol, la carte visée se bombe autour du pointeur, sa forme (bords compris) comme son image, comme sous une goutte d'eau, la bosse suivant la souris et s'étirant dans le sens du geste (`DISTORT`, vertex et fragment shaders) ; elle grandit un peu, les autres rétrécissent et pâlissent vers le blanc (`FOCUS`) ; une
   étiquette suit le pointeur avec le nom du projet ; un clic ouvre son site. L'index des projets (leurs liens) n'apparaît qu'au clavier

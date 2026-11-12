@@ -89,22 +89,29 @@ const RISE = { duration: 1.1, stagger: 0.08, start: "top 88%" } as const;
  * éléments disparaître », puis, le même jour, plus vite, sans le changement de couleur) : la
  * durée de l'épinglage (en écrans : le temps que les projets montent par-dessus), la montée des éléments qui s'en vont
  * (en écrans), et [début, fin], en part de l'épinglage, du départ de la carte du portrait, puis de celui du texte (le
- * titre, les services, l'appel, l'un après l'autre). Sans la scène (téléphone, tablette), les services, empilés, sont
- * plus hauts que l'écran : le texte part plus tôt (stacked), et la section finit par un blanc (index.astro) qui place
- * l'appel aux deux tiers de l'écran quand l'épinglage commence ; ainsi tout est parti avant que les projets, qui
- * montent du bas, n'arrivent dessous (retour d'Axel, 12 novembre 2026 : sur téléphone, la feuille des projets coupait
- * E-commerce et l'appel presque aussitôt affichés)
+ * titre, les services, l'appel, l'un après l'autre). Les cartes des projets apparaissent ensuite sur place (WORK.entry ;
+ * avant, la section des projets montait du bas : les services partis, il restait une moitié d'écran vide, retours
+ * d'Axel du 12 novembre 2026)
  */
-const PIN = { length: 1, rise: 0.08, card: [0, 0.35], text: [0.05, 0.6], stacked: [0, 0.4] } as const;
+const PIN = { length: 1, rise: 0.08, card: [0, 0.3], text: [0, 0.45] } as const;
 /**
  * Les projets : la distance (rootMargin) à laquelle la toile se charge (assez tôt pour être prête à l'arrivée : la
- * section change alors de hauteur, hors de l'écran) ; la scène collée, en écrans (le CSS de index.astro en fixe la
- * hauteur, à changer ensemble) : pan, la toile qui défile avec la page, puis morph, la fin de la section (la sphère, la
+ * section change alors de hauteur, hors de l'écran) ; [début, fin] de l'entrée, en part de l'épinglage des services
+ * (la section y est déjà collée, un écran : les cartes naissent du centre une fois leur texte presque parti) ; la
+ * scène collée ensuite, en écrans (le CSS de index.astro en fixe la hauteur, entrée comprise : à changer ensemble) :
+ * pan, la toile qui défile avec la page, puis morph, la fin de la section (la sphère, la
  * Terre qui se range à côté de la section About : gl/work-canvas.ts, GLOBE) ; [début, fin] de l'arrivée de l'étiquette
  * « Paris », dans la fin de la section, une fois la Terre posée face à Paris (elle reste ensuite), et du bouton de la
  * pause de la vague du globe (là avec la Terre)
  */
-const WORK = { preload: "300% 0px", pan: 1.5, morph: 3, paris: [0.6, 0.66], globe: [0.5, 0.58] } as const;
+const WORK = {
+  preload: "300% 0px",
+  entry: [0.3, 1],
+  pan: 1.5,
+  morph: 3,
+  paris: [0.6, 0.66],
+  globe: [0.5, 0.58],
+} as const;
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -311,9 +318,7 @@ export function init(kind: Kind): PageInstance {
   // section (sa colonne est animée par la scène)
   const servicesPin = document.querySelector<HTMLElement>("[data-services-pin]");
   if (services && servicesPin) {
-    // refait en passant d'un côté à l'autre de SCENE (le texte ne part pas au même rythme)
-    mm.add({ motion: MQ.motion, scene: SCENE.query }, (context) => {
-      if (!context.conditions?.motion) return;
+    mm.add(MQ.motion, () => {
       const texts = services.querySelectorAll<HTMLElement>(".services-head, .service, .services-cta");
       const timeline = gsap.timeline({
         defaults: { ease: "power1.in" },
@@ -330,7 +335,7 @@ export function init(kind: Kind): PageInstance {
       });
       const [cardFrom, cardTo] = PIN.card;
       if (hero) timeline.to(hero, { opacity: 0, y: () => -PIN.rise * window.innerHeight, duration: cardTo - cardFrom }, cardFrom);
-      const [textFrom, textTo] = context.conditions?.scene ? PIN.text : PIN.stacked;
+      const [textFrom, textTo] = PIN.text;
       timeline.to(
         texts,
         {
@@ -367,6 +372,8 @@ export function init(kind: Kind): PageInstance {
       const [parisIn, parisShown] = WORK.paris;
       const apply = () => {
         work.style.setProperty("--work-reveal", state.reveal.toFixed(3));
+        // les cartes là : la scène prend le pointeur (avant, il passe aux services qu'elle recouvre)
+        work.toggleAttribute("data-shown", state.reveal > 0.5);
         work.style.setProperty("--work-morph", state.morph.toFixed(4));
         const paris = gsap.utils.clamp(0, 1, (state.morph - parisIn) / (parisShown - parisIn));
         work.style.setProperty("--work-paris", paris.toFixed(3));
@@ -378,8 +385,9 @@ export function init(kind: Kind): PageInstance {
         gallery?.setScroll(state.scroll);
         gallery?.setMorph(state.morph);
       };
+      const [entryFrom, entryTo] = WORK.entry;
       const onEntry = (self: ScrollTrigger) => {
-        state.reveal = self.progress;
+        state.reveal = gsap.utils.clamp(0, 1, (self.progress - entryFrom) / (entryTo - entryFrom));
         apply();
       };
       // la scène collée : d'abord la toile qui défile (pan), puis la fin de la section (morph), en part de sa longueur
@@ -391,8 +399,17 @@ export function init(kind: Kind): PageInstance {
         state.morph = length > pan ? gsap.utils.clamp(0, 1, (scrolled - pan) / (length - pan)) : 0;
         apply();
       };
-      ScrollTrigger.create({ trigger: work, start: "top bottom", end: "top top", onRefresh: onEntry, onUpdate: onEntry });
-      ScrollTrigger.create({ trigger: work, start: "top top", end: "bottom bottom", onRefresh: onScroll, onUpdate: onScroll });
+      // l'entrée : la section, remontée d'un écran (index.astro), touche le haut de l'écran quand l'épinglage des
+      // services commence, et reste collée pendant qu'il dure ; la toile ne défile qu'après
+      const pinned = () => `+=${PIN.length * window.innerHeight}`;
+      ScrollTrigger.create({ trigger: work, start: "top top", end: pinned, onRefresh: onEntry, onUpdate: onEntry });
+      ScrollTrigger.create({
+        trigger: work,
+        start: () => `top -${PIN.length * window.innerHeight}px`,
+        end: "bottom bottom",
+        onRefresh: onScroll,
+        onUpdate: onScroll,
+      });
 
       // le projet survolé (sur la toile ou dans l'index) : éclairé dans l'index, nommé par l'étiquette
       let labelShown = false;
@@ -548,6 +565,7 @@ export function init(kind: Kind): PageInstance {
         work.style.removeProperty("--paris-x");
         work.style.removeProperty("--work-globe");
         work.removeAttribute("data-globe");
+        work.removeAttribute("data-shown");
         pauseButton?.removeEventListener("click", onPause);
         work.style.removeProperty("--paris-y");
       };
