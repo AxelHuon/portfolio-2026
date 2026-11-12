@@ -70,8 +70,11 @@ export const home = {
   /** le visage : sur un écran en portrait, le recadrage le garde à l'image (mesuré sur la source, x 0,6 à 0,8) */
   focus: { x: 0.72, y: 0.4 } satisfies Focus,
   role: site.role,
-  /** les sites animés comme les apps du quotidien (retour d'Axel, 11 novembre 2026 : « des Instagram-like ») */
-  intro: "Websites and web apps, from WebGL and motion to social platforms.",
+  /**
+   * les trois services, dans les mots de la section Services (web apps, websites, e-commerce : rapides, clairs,
+   * animés ; demande d'Axel, 12 novembre 2026, après le changement de leurs textes) ; plus de WebGL (pas son point fort)
+   */
+  intro: "Web apps, websites and online stores: fast, clear and smoothly animated.",
 };
 
 /** Un service de la section Services de l'accueil */
@@ -87,7 +90,8 @@ export interface Service {
 
 /**
  * La section Services, sous le hero (demande d'Axel, 11 novembre 2026 : web app, site vitrine, site e-commerce).
- * Premier jet des textes, à reprendre.
+ * Premier jet des textes, à reprendre. Le site vitrine (12 novembre 2026) : « Websites » plutôt que « Showcase
+ * websites », sans WebGL ni 3D (pas son point fort), mais avec les animations (GSAP).
  */
 export const services = {
   title: "Services",
@@ -100,10 +104,10 @@ export const services = {
       includes: ["Accounts and permissions", "Feeds and messaging", "Dashboards and admin tools", "Design systems"],
     },
     {
-      id: "showcase",
-      name: "Showcase websites",
-      summary: "A site for a brand, a studio or a person, with the motion and WebGL that make it remembered.",
-      includes: ["Motion design", "WebGL and 3D", "Content management", "SEO and performance"],
+      id: "websites",
+      name: "Websites",
+      summary: "A clear, fast website to present a business, a studio or a person, with animations that bring it to life.",
+      includes: ["Scroll animations", "Page transitions", "Responsive design", "SEO and performance"],
     },
     {
       id: "e-commerce",
@@ -113,6 +117,109 @@ export const services = {
     },
   ] satisfies readonly Service[],
   cta: { text: "Have a project in mind?", label: "Get in touch", href: "/contact" },
+};
+
+/** Un projet de la section Projects de l'accueil (home.ts et gl/work-canvas.ts : la toile infinie) */
+export interface WorkItem {
+  /** clé de rendu */
+  id: string;
+  name: string;
+  /** le genre de projet, en quelques mots */
+  kind: string;
+  /** l'année, si elle est sûre */
+  year?: string;
+  /** le site en ligne (nouvel onglet) ; sans adresse en ligne, le projet n'est pas un lien */
+  url?: string;
+  /** recadrée en 3:2, comme les images de la scène WebGL ; sa variante WebP 1080 en est la texture */
+  cover: Picture;
+}
+
+const WORK_WIDTHS = [480, 768, 1080] as const;
+const workCover = (name: string, alt: string, version = "v1") => picture(`/img/work/${name}`, WORK_WIDTHS, 720, alt, version);
+
+/**
+ * La section Projects de l'accueil (demande d'Axel, 12 novembre 2026 : ses projets en 3D, pris dans ses dépôts
+ * 333bei, berj-site, thomas-portfolio et givenly-astrojs-front, et ses sites whentocop.fr et siderun.com). Sources des images dans
+ * sources/work (hors du dépôt) : les visuels des sites en ligne pour WhenToCop et SideRun, ceux des dépôts pour les
+ * autres (Berjyy, SideRun et Thomas Chheang remplacés le 12 novembre par des captures et visuels fournis par Axel). La page /projects garde encore les projets de la démo (projects, plus bas) : à rapprocher.
+ * À compléter : l'année de WhenToCop et de SideRun, les adresses de 333bei et de Thomas Chheang une fois en ligne.
+ */
+export const work = {
+  title: "Selected work",
+  items: [
+    {
+      id: "whentocop",
+      name: "WhenToCop?",
+      kind: "Sneaker price comparison",
+      url: "https://www.whentocop.fr/",
+      cover: workCover("whentocop", "A pile of Nike Mind slides in several colours on a light grey floor"),
+    },
+    {
+      id: "givenly",
+      name: "Givenly",
+      kind: "Gift lists and Secret Santa app",
+      year: "2026",
+      url: "https://www.givenly.io/",
+      // l'image de partage du site (dépôt givenly-astrojs-front), cadrée à gauche : le slogan et le logo
+      cover: workCover("givenly", "Givenly's banner: the tagline “Offrez sans stress.” next to its green logo"),
+    },
+    {
+      id: "berjyy",
+      name: "Berjyy",
+      kind: "DJ website and press kit",
+      year: "2026",
+      url: "https://berjyy.com/",
+      // capture du site (fournie par Axel, 12 novembre 2026), cadrée à gauche pour garder le logo
+      cover: workCover("berjyy", "Berjyy's website: the DJ at the decks in green night vision, under the BERJYY wordmark", "v3"),
+    },
+    {
+      id: "333bei",
+      name: "333bei",
+      kind: "Streetwear online store",
+      year: "2026",
+      cover: workCover("333bei", "A heap of camouflage caps embroidered with a yellow logo"),
+    },
+    {
+      id: "siderun",
+      name: "SideRun",
+      kind: "Running price comparison",
+      url: "https://www.siderun.com/",
+      // le visuel du hero du site (lien d'Axel, 12 novembre 2026)
+      cover: workCover("siderun", "A pink running shoe floating on a deep red background", "v2"),
+    },
+    {
+      id: "thomas-chheang",
+      name: "Thomas Chheang",
+      kind: "Graphic designer portfolio",
+      year: "2026",
+      // capture du site (fournie par Axel, 12 novembre 2026)
+      cover: workCover("thomas-chheang", "Thomas Chheang's website: project images between the words creative and studio", "v2"),
+    },
+  ] satisfies readonly WorkItem[],
+};
+
+/**
+ * La section About de l'accueil (demande d'Axel, 12 novembre 2026) : elle monte à côté de la Terre de la fin des projets,
+ * qui se range dans sa colonne de gauche, Paris marqué. city : l'étiquette de Paris sur le globe. Une fiche d'identité
+ * (choix d'Axel sur maquettes) : une phrase, puis des lignes. Premier jet des textes, à reprendre avec Axel, le statut
+ * « disponible » compris (la page /about garde encore la démo, plus bas)
+ */
+export const homeAbout = {
+  city: "Paris",
+  title: "Based in Paris",
+  /**
+   * plus personnelle, sans redire les services (retour d'Axel, 12 novembre 2026 : ses passions, le code, les jeux vidéo
+   * et les sneakers)
+   */
+  intro:
+    "I'm Axel, passionate about code, video games and sneakers. When I'm not building for clients, I'm on a side project, a game or the hunt for the next pair.",
+  /** la fiche : une ligne par fait ; note, une précision sous la valeur ; live, le point « disponible » (Role et Focus
+   * retirés : ils redisaient les services) */
+  facts: [
+    { label: "Location", value: "Paris, France", note: "48.86° N, 2.35° E" },
+    { label: "Age", value: "26" },
+    { label: "Status", value: "Available for new projects", live: true },
+  ],
 };
 
 export const about = {

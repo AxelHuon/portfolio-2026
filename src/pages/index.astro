@@ -1,109 +1,241 @@
 ---
 /*
  * Accueil : le hero, portrait plein écran passé sous le header, puis les services (web apps, sites vitrines,
- * e-commerce). Les projets récents, retirés à la demande d'Axel le 11 novembre 2026, restent
- * sur /projects.
+ * e-commerce), puis les projets (une toile infinie).
  * Le <picture> du portrait est toujours servi : seul sans JS, sans WebGL ou en mouvement réduit ; sinon
  * src/scripts/pages/home.ts pose dessus un canvas WebGL (gl/hero-flow.ts) au même cadrage. home.focus règle ce cadrage
  * aux deux endroits : object-position ici, data-focus-x / -y pour le shader.
  * Le nom (site.name) passe une ligne par mot, chacune dans son masque, une lettre par span : home.ts les fait monter
  * une à une à l'entrée. Les lecteurs d'écran lisent le nom d'un bloc (sr-only), les lettres leur sont cachées.
  *
- * La transition vers les services (demandes d'Axel, 11 novembre 2026 : la section sur fond blanc, un passage très
- * fluide, la main sur le défilement). Pas de fondu de couleur (le bleu nuit et le blanc mélangés font un gris sale) :
- * la section blanche monte par-dessus le hero comme une feuille, un peu plus vite que la page, avec son contenu (le
- * titre arrive avec le blanc, sans vide au-dessus), son bord bombé (.services-edge) se gonflant puis s'aplatissant (à
- * plat au départ : rien ne dépasse sur le hero en haut de la page). Dessous, le hero s'enfonce à peine et s'assombrit
- * (.hero-dim). Tout suit le défilement (home.ts, en scrub). La feuille finit par des coins arrondis sur le
- * bleu nuit du footer. Sans JS ou en mouvement réduit : la feuille monte simplement, sans bord bombé ni enfoncement.
- * Les scènes essayées avant sont gardées sur les branches scene/portrait-se-range et scene/panorama.
+ * La transition vers les services, la scène « le portrait se range » (choix d'Axel, 11 novembre 2026, reprise le 12
+ * à sa demande). Avec JS, sans mouvement réduit, sur un écran d'au moins 64rem de large et 34rem de haut : le hero
+ * reste collé (sticky) derrière les services, dans .scene ; les services passent en deux colonnes, transparents sur le
+ * blanc de la scène. À gauche, une place vide (.services-slot), collée elle aussi : home.ts y range le hero, rogné
+ * (clip-path) en carte arrondie, l'image décalée pour que le visage y soit centré ; à droite, le texte, qui arrive une
+ * fois la carte presque formée. Tout suit le défilement (scrub, sans glissade). Ces conditions sont aussi celles de
+ * SCENE dans home.ts : à changer ensemble. Sinon : le hero, puis les services en blanc, sur toute la largeur.
+ * La fin des services est épinglée un écran (home.ts, PIN) : les projets, blancs aussi, montent par-dessus pendant
+ * que la carte, puis le titre, les services et l'appel s'en vont vers le haut. Le footer suit en blanc. Les scènes essayées avant sont gardées sur la branche scene/panorama ; celle de la
+ * feuille blanche qui montait sur le hero est dans l'historique de main.
  */
+import Icon from "../components/Icon.astro";
 import Picture from "../components/Picture.astro";
-import { home, services } from "../data/content";
-import { site } from "../data/site";
+import RollLink from "../components/RollLink.astro";
+import { home, homeAbout, services, work } from "../data/content";
+import { site, uiText } from "../data/site";
 import Base from "../layouts/Base.astro";
 
 // le portrait couvre toute la largeur de l'écran
 const HERO_SIZES = "100vw";
 const objectPosition = `object-position:${home.focus.x * 100}% ${home.focus.y * 100}%`;
 const nameLines = site.name.split(" ");
+// les couvertures des projets : deux colonnes dans la grille, une image au centre de la scène WebGL
+const WORK_SIZES = "(min-width: 48rem) 45vw, 92vw";
+const pad = (value: number) => String(value).padStart(2, "0");
 ---
 
 <Base page="home">
   <link slot="head" rel="preload" as="image" type="image/avif" imagesrcset={home.image.avif} imagesizes={HERO_SIZES} fetchpriority="high" />
   <div class="stage">
-    <section class="hero" data-hero data-gl="pending" data-focus-x={home.focus.x} data-focus-y={home.focus.y} aria-labelledby="hero-title">
-      <div class="hero-frame" data-hero-frame>
-        <div class="hero-media mesh" data-hero-media>
-          <Picture
-            image={home.image}
-            sizes={HERO_SIZES}
-            loading="eager"
-            fetchpriority="high"
-            class="absolute inset-0 h-full w-full object-cover"
-            style={objectPosition}
-          />
-        </div>
-        <div class="hero-shade"></div>
-        <div class="hero-text" data-reveal data-hero-text>
-          <h1 id="hero-title" class="hero-title">
-            <span class="sr-only">{site.name}</span>
-            <span aria-hidden="true">
-              {
-                nameLines.map((line) => (
-                  <span class="hero-line">
-                    {[...line].map((char) => (
-                      <span class="hero-char" data-reveal-char>
-                        {char}
-                      </span>
-                    ))}
-                  </span>
-                ))
-              }
-            </span>
-          </h1>
-          <div class="hero-aside">
-            <p data-reveal-fade>{home.role}</p>
-            <p class="text-muted" data-reveal-fade>{home.intro}</p>
+    {/*
+      la scène « le portrait se range » (home.ts, SCENE) : le hero reste collé derrière les services, le temps de se
+      ranger en carte à gauche, puis de l'épinglage de leur fin ; le fond blanc de la scène est ce que la carte découvre
+    */}
+    <div class="scene">
+      <section class="hero" data-hero data-gl="pending" data-focus-x={home.focus.x} data-focus-y={home.focus.y} aria-labelledby="hero-title">
+        <div class="hero-frame" data-hero-frame>
+          <div class="hero-media mesh" data-hero-media>
+            <Picture
+              image={home.image}
+              sizes={HERO_SIZES}
+              loading="eager"
+              fetchpriority="high"
+              class="absolute inset-0 h-full w-full object-cover"
+              style={objectPosition}
+            />
+          </div>
+          <div class="hero-shade" data-hero-shade></div>
+          <div class="hero-text" data-reveal data-hero-text>
+            <h1 id="hero-title" class="hero-title">
+              <span class="sr-only">{site.name}</span>
+              <span aria-hidden="true">
+                {
+                  nameLines.map((line) => (
+                    <span class="hero-line">
+                      {[...line].map((char) => (
+                        <span class="hero-char" data-reveal-char>
+                          {char}
+                        </span>
+                      ))}
+                    </span>
+                  ))
+                }
+              </span>
+            </h1>
+            <div class="hero-aside">
+              <p data-reveal-fade>{home.role}</p>
+              <p class="text-muted" data-reveal-fade>{home.intro}</p>
+            </div>
           </div>
         </div>
+      </section>
+
+      {/* le conteneur que home.ts épingle à la fin des services */}
+      <div class="services-pin" data-services-pin>
+        <section class="services" data-services aria-labelledby="services-title">
+          <div class="services-grid">
+            {/* la place de la carte du portrait, pendant la scène seulement (home.ts) */}
+            <div class="services-slot" data-portrait-slot></div>
+            <div class="services-main" data-services-main>
+              <div class="services-head">
+                <h2 id="services-title" class="services-title">
+                  <span class="mask"><span>{services.title}</span></span>
+                </h2>
+                <p class="services-intro">{services.intro}</p>
+              </div>
+              <ul class="services-list">
+                {
+                  services.items.map((service) => (
+                    <li class="service" data-service>
+                      <h3 class="service-name">
+                        <span class="mask">
+                          <span data-rise>{service.name}</span>
+                        </span>
+                      </h3>
+                      <div class="service-detail">
+                        <p class="service-summary">{service.summary}</p>
+                        <ul class="service-includes">
+                          {service.includes.map((item) => (
+                            <li>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </li>
+                  ))
+                }
+              </ul>
+              <p class="services-cta">
+                {services.cta.text} <RollLink href={services.cta.href} label={services.cta.label} />
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
-      <div class="hero-dim" data-hero-dim></div>
+    </div>
+
+    {/*
+      Les projets (demande d'Axel, 12 novembre 2026) : une toile infinie de leurs images (gl/work-canvas.ts, home.ts),
+      qu'on glisse dans tous les sens et qui défile avec la page, sur fond blanc ; l'image survolée se bombe sous le
+      pointeur. Elle monte par-dessus les services épinglés pendant que leurs éléments s'en vont. Tant que la toile n'est pas là (chargement, échec),
+      sans JS ou en mouvement réduit : une grille de cartes ; data-work-texture : la variante WebP 1080, la texture des
+      cartes de la toile.
+    */}
+    <section
+      class="work"
+      data-work
+      data-gl="pending"
+      data-globe-land="/img/globe/land-v2.png"
+      aria-labelledby="work-title"
+    >
+      <div class="work-stage" data-work-stage>
+        <div class="work-gl" data-work-gl></div>
+        <h2 id="work-title" class="work-title">{work.title}</h2>
+        <ol class="work-list">
+          {
+            work.items.map((item, index) => (
+              <li
+                class="work-item"
+                data-work-item
+                data-work-texture={item.cover.src}
+              >
+                <div class="work-cover">
+                  <Picture image={item.cover} sizes={WORK_SIZES} class="h-full w-full object-cover" />
+                </div>
+                <div class="work-text">
+                  <span class="work-index">
+                    {pad(index + 1)} / {pad(work.items.length)}
+                  </span>
+                  <h3 class="work-name">
+                    {item.url ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" class="work-link">
+                        <span class="work-name-inner">
+                          {item.name}
+                          <Icon name="arrow-up-right" />
+                        </span>
+                        <span class="sr-only"> {uiText.newTab}</span>
+                      </a>
+                    ) : (
+                      <span class="work-name-inner">{item.name}</span>
+                    )}
+                  </h3>
+                  <span class="work-meta">
+                    {item.kind}
+                    {item.year && ` · ${item.year}`}
+                  </span>
+                </div>
+              </li>
+            ))
+          }
+        </ol>
+        <p class="work-hint">{uiText.dragToExplore}</p>
+        {/* l'étiquette du point de Paris, sur le globe de la fin de la section (home.ts, --work-paris) */}
+        <p class="work-paris" aria-hidden="true">{homeAbout.city}</p>
+        {/*
+          la pause de la vague du globe, qui bat en continu (WCAG 2.2.2 : un mouvement de plus de 5 s se met en pause) ;
+          home.ts change son état et son nom (data-label-play)
+        */}
+        <button
+          type="button"
+          class="work-pause"
+          data-work-pause
+          aria-pressed="false"
+          aria-label={uiText.pauseAnimation}
+          data-label-pause={uiText.pauseAnimation}
+          data-label-play={uiText.playAnimation}
+        >
+          <span class="work-pause-icon work-pause-pause" aria-hidden="true"><Icon name="pause" /></span>
+          <span class="work-pause-icon work-pause-play" aria-hidden="true"><Icon name="play" /></span>
+        </button>
+        {/* l'étiquette du projet survolé, qui suit le pointeur (home.ts) */}
+        <div class="work-cursor" data-work-cursor aria-hidden="true">
+          <span data-work-cursor-name></span>
+          <Icon name="arrow-up-right" />
+        </div>
+      </div>
     </section>
 
-    <section class="services" data-services aria-labelledby="services-title">
-      {/* le bord bombé de la feuille, qui s'aplatit en montant (home.ts) */}
-      <div class="services-edge" data-services-edge aria-hidden="true"></div>
-      <div class="services-head">
-        <h2 id="services-title" class="services-title">
-          <span class="mask"><span>{services.title}</span></span>
+    {/*
+      About (demande d'Axel, 12 novembre 2026) : sur fond blanc. Avec la toile des projets, elle commence un écran plus
+      haut, transparente, et monte à côté de la Terre qui se range dans sa colonne de gauche (gl/work-canvas.ts) ; son
+      titre monte de son masque en arrivant (data-rise, comme les services)
+    */}
+    <section class="about" aria-labelledby="about-title">
+      {/* la fiche d'identité (choix d'Axel sur maquettes, 12 novembre 2026) : le titre, une phrase, des lignes entre
+          des filets, puis le lien de contact */}
+      <div class="about-card">
+        <h2 id="about-title" class="about-title">
+          <span class="mask"><span data-rise>{homeAbout.title}</span></span>
         </h2>
-        <p class="services-intro">{services.intro}</p>
-      </div>
-      <ul class="services-list">
-        {
-          services.items.map((service) => (
-            <li class="service" data-service>
-              <h3 class="service-name">
-                <span class="mask">
-                  <span data-rise>{service.name}</span>
-                </span>
-              </h3>
-              <div class="service-detail">
-                <p class="service-summary">{service.summary}</p>
-                <ul class="service-includes">
-                  {service.includes.map((item) => (
-                    <li>{item}</li>
-                  ))}
-                </ul>
+        <p class="about-intro">{homeAbout.intro}</p>
+        <dl class="about-facts">
+          {
+            homeAbout.facts.map((fact) => (
+              <div class="about-fact">
+                <dt>{fact.label}</dt>
+                <dd>
+                  {fact.live && <span class="about-live" aria-hidden="true" />}
+                  {fact.value}
+                  {fact.note && <span class="about-note">{fact.note}</span>}
+                </dd>
               </div>
-            </li>
-          ))
-        }
-      </ul>
-      <p class="services-cta">
-        {services.cta.text} <a href={services.cta.href}>{services.cta.label}</a>
-      </p>
+            ))
+          }
+        </dl>
+        <p class="about-cta">
+          <RollLink href={services.cta.href} label={services.cta.label} />
+        </p>
+      </div>
     </section>
   </div>
 </Base>
@@ -121,7 +253,7 @@ const nameLines = site.name.split(" ");
     min-height: 34rem;
     overflow: clip;
   }
-  /* le cadre du hero : c'est lui qui s'enfonce sous la feuille des services (home.ts) */
+  /* le cadre du hero : la scène le décale pour garder le visage au centre de la carte (home.ts) */
   .hero-frame {
     position: absolute;
     inset: 0;
@@ -131,15 +263,6 @@ const nameLines = site.name.split(" ");
     position: absolute;
     inset: 0;
     z-index: 0;
-  }
-  /* l'ombre du hero recouvert (home.ts) */
-  .hero-dim {
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    background: var(--color-background);
-    opacity: 0;
-    pointer-events: none;
   }
   /* sans WebGL : le portrait en écran sur le dégradé (.mesh), comme le compose le shader */
   .hero-media :global(img) {
@@ -206,54 +329,37 @@ const nameLines = site.name.split(" ");
     }
   }
 
-  /* Services : une feuille blanche, le texte en bleu nuit (contraste 18:1 ; atténué à 65 % : 6,8:1), qui monte
-     par-dessus le hero et finit par des coins arrondis sur le bleu nuit du footer. Le focus garde l'anneau bleu ciel,
-     sur son halo bleu nuit */
+  /* Services : sur fond blanc, le texte en bleu foncé (--color-ink, demande d'Axel, 12 novembre 2026 : le bleu
+     de la DA ; contraste 12,7:1 ; atténué à 70 % : 5,1:1, à 65 % il passait sous 4,5:1), arrondie en haut sur le hero
+     (sans la scène) ; les projets, blancs aussi, la suivent. Le focus garde l'anneau bleu ciel, sur son halo bleu
+     nuit */
   .services {
-    --ink: var(--color-background);
-    --ink-muted: color-mix(in srgb, var(--ink) 65%, #fff);
+    --ink: var(--color-ink);
+    --ink-muted: color-mix(in srgb, var(--ink) 70%, #fff);
     --rule: color-mix(in srgb, var(--ink) 14%, transparent);
     position: relative;
     z-index: 2;
     /* la marge du haut, entre les deux essais (14vh : trop de blanc avec l'ancienne vague ; 5vh : trop serré une fois
-       la feuille montée avec son contenu ; retours d'Axel, 11 novembre 2026) */
-    padding: clamp(3.5rem, 10vh, 6.5rem) var(--spacing-gutter) clamp(5rem, 14vh, 9rem);
-    border-radius: 0 0 32px 32px;
+       la feuille montée avec son contenu ; retours d'Axel, 11 novembre 2026). Sur un écran large, toute la section
+       tient dans un écran (demande d'Axel, 12 novembre 2026) : les tailles et les marges suivent aussi la hauteur
+       (dvh), réglées pour 728 px de haut ; empilés sur un écran étroit, les services défilent */
+    padding: clamp(3.5rem, 10vh, 6.5rem) var(--spacing-gutter) clamp(2rem, 6dvh, 5rem);
+    border-radius: 32px 32px 0 0;
     background: #fff;
     color: var(--ink);
     container-type: inline-size;
   }
-  /* avec la transition, la feuille garde l'avance prise en montant (SCENE.lead de home.ts : 0,4 écran, à changer
-     ensemble) : la même marge en moins dessous, le footer reste collé à elle */
-  @media (prefers-reduced-motion: no-preference) {
-    :global(html.js) .services {
-      margin-bottom: -40svh;
-    }
+  /* les deux colonnes de la scène (plus bas) : la place de la carte, à gauche, n'existe que pendant la scène ; le
+     texte se règle sur la largeur de sa colonne (container queries) */
+  .services-slot {
+    display: none;
+  }
+  .services-main {
+    container-type: inline-size;
   }
   .services ::selection {
     background: var(--ink);
     color: #fff;
-  }
-  /* le bord bombé de la feuille : une onde, une demi-ellipse blanche posée sur son bord haut, haute d'un quart d'écran et
-     plus large que l'écran de 60 % (retour d'Axel, 11 novembre 2026 : une onde plus marquée). À plat au départ (scaleY 0 : en haut de la page, elle ne dépasse pas sur le hero) ; home.ts
-     la gonfle quand la feuille monte, puis l'aplatit avant qu'elle touche le haut. Avec la transition seulement */
-  .services-edge {
-    display: none;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    :global(html.js) .services-edge {
-      position: absolute;
-      bottom: calc(100% - 1px);
-      left: -30%;
-      display: block;
-      width: 160%;
-      height: 25svh;
-      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-      background: #fff;
-      transform: scaleY(0);
-      transform-origin: 50% 100%;
-      pointer-events: none;
-    }
   }
   /* le titre et l'intro, comme le nom et le métier du hero : à gauche et à droite, alignés en bas */
   .services-head {
@@ -266,7 +372,7 @@ const nameLines = site.name.split(" ");
   .services-title {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: clamp(3.5rem, 10cqi, 10rem);
+    font-size: clamp(2.75rem, min(10cqi, 11dvh), 10rem);
     line-height: 0.9;
     letter-spacing: -0.03em;
   }
@@ -287,14 +393,17 @@ const nameLines = site.name.split(" ");
     display: block;
   }
   .services-list {
-    margin-top: clamp(3rem, 9vh, 6rem);
+    margin-top: clamp(1.5rem, 4dvh, 4rem);
+  }
+  /* le dernier filet appartient au dernier service : il s'efface avec lui (PIN de home.ts) */
+  .service:last-child {
     border-bottom: 1px solid var(--rule);
   }
   /* un service : le nom en grand, puis le résumé et ce qu'il comprend ; côte à côte dans une colonne assez large */
   .service {
     display: grid;
     gap: 1.25rem;
-    padding-block: clamp(2rem, 6vh, 4rem);
+    padding-block: clamp(0.875rem, 2.4dvh, 2.5rem);
     border-top: 1px solid var(--rule);
   }
   @container (min-width: 56rem) {
@@ -303,13 +412,13 @@ const nameLines = site.name.split(" ");
       gap: 3rem;
     }
     .service-detail {
-      padding-top: 0.75rem;
+      padding-top: clamp(0.25rem, 0.8dvh, 0.75rem);
     }
   }
   .service-name {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: clamp(2.5rem, 6.5cqi, 6.5rem);
+    font-size: clamp(2rem, min(6.5cqi, 7dvh), 6.5rem);
     line-height: 0.95;
     letter-spacing: -0.03em;
   }
@@ -317,35 +426,468 @@ const nameLines = site.name.split(" ");
     max-width: 32rem;
   }
   .service-summary {
-    font-size: clamp(1.125rem, 1.5vw, 1.375rem);
+    font-size: clamp(1rem, min(1.5vw, 2.4dvh), 1.375rem);
     line-height: 1.4;
   }
   .service-includes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem 1.5rem;
-    margin-top: 1.5rem;
+    gap: 0.25rem 1.5rem;
+    margin-top: clamp(0.5rem, 1.6dvh, 1.5rem);
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .services-cta {
+    margin-top: clamp(1.5rem, 4dvh, 4rem);
+    font-size: clamp(1.125rem, min(2.2vw, 3dvh), 2rem);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  /* Projects : sur fond blanc, comme les services (demande d'Axel, 12 novembre 2026, gardé après un essai sur le
+     dégradé du hero), en bleu foncé ; le footer la suit en blanc (Footer.astro). Sans JS ou en mouvement réduit, une grille de cartes : la
+     couverture, puis le numéro, le nom (le lien, étendu à toute la carte) et le genre de projet */
+  .work {
+    --ink: var(--color-ink);
+    --ink-muted: color-mix(in srgb, var(--ink) 70%, #fff);
+    position: relative;
+    z-index: 3;
+    padding: clamp(5rem, 14vh, 9rem) var(--spacing-gutter) clamp(5rem, 14vh, 9rem);
+    background: #fff;
+    color: var(--ink);
+    container-type: inline-size;
+  }
+  .work ::selection {
+    background: var(--ink);
+    color: #fff;
+  }
+  .work-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(3.5rem, 10cqi, 10rem);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+  .work-list {
+    display: grid;
+    gap: 3rem 2rem;
+    margin-top: clamp(3rem, 9vh, 6rem);
+  }
+  @container (min-width: 48rem) {
+    .work-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .work-item {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+  }
+  .work-cover {
+    aspect-ratio: 3 / 2;
+    overflow: clip;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--ink) 8%, #fff);
+  }
+  .work-text {
+    display: grid;
+    gap: 0.375rem;
+  }
+  .work-index,
+  .work-meta {
     color: var(--ink-muted);
     font-size: 0.9375rem;
     line-height: 1.4;
   }
-  .services-cta {
-    margin-top: clamp(3rem, 9vh, 6rem);
-    font-size: clamp(1.25rem, 2.2vw, 2rem);
-    line-height: 1.3;
-    letter-spacing: -0.01em;
-  }
-  /* le soulignement se renforce en douceur au survol, comme la bordure du bouton Menu */
-  .services-cta a {
+  .work-name {
+    width: fit-content;
     font-weight: 500;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-decoration-color: color-mix(in srgb, var(--ink) 35%, transparent);
-    text-underline-offset: 0.18em;
-    transition: text-decoration-color 0.35s ease;
+    font-size: clamp(1.75rem, 3.5cqi, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
   }
-  .services-cta a:hover {
-    text-decoration-color: var(--ink);
+  .work-name-inner {
+    display: block;
+  }
+  /* la flèche (Icon.astro) en exposant, en haut à droite du nom */
+  .work-name :global(.icon) {
+    width: 0.42em;
+    height: 0.42em;
+    margin-left: 0.12em;
+    vertical-align: 0.48em;
+  }
+  .work-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+  .work-hint,
+  .work-cursor,
+  .work-paris,
+  .work-pause {
+    display: none;
   }
 
+  /* La fin des services, épinglée (home.ts, PIN) : la section fait au moins un écran (son contenu y tient sur un écran
+     large : épinglée, elle est entière à l'écran) ; les projets montent par-dessus pendant que ses éléments s'en vont */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .services {
+      min-height: 100dvh;
+    }
+  }
+
+  /* La scène « le portrait se range » (mêmes conditions que SCENE dans home.ts : à changer ensemble ; choix d'Axel, 11
+     novembre 2026, reprise le 12) : le hero reste collé derrière les services ; la scène est blanche dessous, c'est ce
+     que la carte découvre en se rétractant. Les services, transparents, en deux colonnes : à gauche la place de la carte
+     (collée sous le header jusqu'en bas de l'écran, moins la marge), à droite le texte, réglé pour tenir dans un écran
+     (nom et détail côte à côte dès 36rem de colonne, le titre et les marges un peu plus petits) */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 64rem) and (min-height: 34rem) {
+    :global(html.js) .scene {
+      background: #fff;
+    }
+    :global(html.js) .hero {
+      position: sticky;
+      top: 0;
+    }
+    :global(html.js) .services {
+      padding-top: var(--spacing-header);
+      padding-bottom: clamp(1rem, 3dvh, 2.5rem);
+      border-radius: 0;
+      background: none;
+    }
+    :global(html.js) .services-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      gap: clamp(2.5rem, 5vw, 5rem);
+    }
+    :global(html.js) .services-slot {
+      position: sticky;
+      top: var(--spacing-header);
+      display: block;
+      align-self: start;
+      height: calc(100svh - var(--spacing-header) - var(--spacing-gutter));
+    }
+    :global(html.js) .services-title {
+      font-size: clamp(2.5rem, min(10cqi, 9dvh), 7rem);
+    }
+    :global(html.js) .services-intro {
+      max-width: 16rem;
+    }
+    :global(html.js) .services-cta {
+      margin-top: clamp(1rem, 3dvh, 3rem);
+    }
+    @container (min-width: 36rem) {
+      :global(html.js) .service {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 2rem;
+      }
+      :global(html.js) .service-detail {
+        padding-top: clamp(0.25rem, 0.8dvh, 0.75rem);
+      }
+    }
+  }
+
+  /* La toile infinie (avec la transition) : la section, blanche, monte par-dessus les services épinglés (z-index 3)
+     pendant que leurs éléments s'en vont (home.ts, PIN). Tant que la toile n'est pas prête (data-gl « pending », ou « off » après un
+     échec), la grille de cartes reste. Toile prête (« on », home.ts) : la scène se colle en haut pendant 150 svh de
+     défilement, la toile défile avec ; le titre en haut, l'invitation à glisser en bas à droite, l'étiquette du projet qui suit le pointeur ; l'index des projets (leurs liens) n'apparaît qu'au clavier.
+     Le titre, l'index et l'invitation apparaissent avec les cartes
+     (--work-reveal, posé par home.ts) */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .work[data-gl="on"] {
+      --work-reveal: 0;
+      --work-morph: 0;
+      --work-paris: 0;
+      /* le titre, l'index et l'invitation : là une fois les cartes arrivées, partis dès que la toile s'enroule */
+      --work-text: calc(clamp(0, (var(--work-reveal) - 0.6) / 0.4, 1) * clamp(0, 1 - var(--work-morph) * 8, 1));
+      height: 550svh;
+      padding: 0;
+    }
+    :global(html.js) .work[data-gl="on"] .work-stage {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+      overflow: clip;
+      user-select: none;
+    }
+    :global(html.js) .work[data-gl="on"] .work-gl {
+      position: absolute;
+      inset: 0;
+    }
+    :global(html.js) .work-gl > :global(canvas) {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* le titre, petit, dans la hauteur du header (le bouton Menu est à droite) */
+    :global(html.js) .work[data-gl="on"] .work-title {
+      position: absolute;
+      top: 0;
+      left: var(--spacing-gutter);
+      display: flex;
+      align-items: center;
+      height: var(--spacing-header);
+      color: var(--ink-muted);
+      font-size: 0.9375rem;
+      line-height: 1.4;
+      letter-spacing: 0;
+      opacity: var(--work-text);
+    }
+    /* l'index : les liens des projets, pour le clavier. Invisible (retiré de l'écran à la demande d'Axel, 12 novembre
+       2026 : la toile et l'étiquette suffisent) ; il n'apparaît, en bas à gauche sur une pastille blanche, que si le
+       focus y entre (Tab), pour qu'on voie le lien atteint */
+    :global(html.js) .work[data-gl="on"] .work-list {
+      position: absolute;
+      bottom: clamp(1.25rem, 5vh, 3rem);
+      left: var(--spacing-gutter);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 1.5rem;
+      max-width: calc(100% - 2 * var(--spacing-gutter) - 11rem);
+      margin: 0;
+      padding: 0.625rem 1.125rem;
+      border-radius: 16px;
+      background: #fff;
+      opacity: var(--work-text);
+    }
+    :global(html.js) .work[data-gl="on"] .work-list:not(:focus-within) {
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    :global(html.js) .work[data-gl="on"] .work-item {
+      display: block;
+    }
+    :global(html.js) .work[data-gl="on"] .work-cover,
+    :global(html.js) .work[data-gl="on"] .work-meta {
+      display: none;
+    }
+    :global(html.js) .work[data-gl="on"] .work-text {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    :global(html.js) .work[data-gl="on"] .work-index {
+      font-size: 0.75rem;
+    }
+    :global(html.js) .work[data-gl="on"] .work-name {
+      font-size: clamp(1rem, 1.4vw, 1.375rem);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+      opacity: 0.55;
+      transition: opacity 0.3s ease;
+    }
+    :global(html.js) .work[data-gl="on"] .work-item[data-state="active"] .work-name {
+      opacity: 1;
+    }
+    /* la flèche reste à côté du nom */
+    :global(html.js) .work[data-gl="on"] .work-name-inner {
+      display: inline;
+    }
+    :global(html.js) .work[data-gl="on"] .work-link::after {
+      content: none;
+    }
+    :global(html.js) .work[data-gl="on"] .work-hint {
+      position: absolute;
+      right: var(--spacing-gutter);
+      bottom: clamp(1.25rem, 5vh, 3rem);
+      display: block;
+      color: var(--ink-muted);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      opacity: var(--work-text);
+    }
+    /* l'étiquette du projet survolé : une pastille bleu foncé, un peu en bas à droite du pointeur (home.ts la déplace) */
+    :global(html.js) .work[data-gl="on"] .work-cursor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      padding: 0.5rem 0.875rem;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 500;
+      font-size: 0.875rem;
+      line-height: 1.2;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    :global(html.js) .work[data-gl="on"] .work-cursor[data-visible] {
+      opacity: 1;
+    }
+    /* l'étiquette de Paris : une petite pastille à droite de ses anneaux (--paris-x, --paris-y : posés par home.ts
+       d'après la Terre, qu'elle suit quand celle-ci se range), une fois la Terre arrêtée face à Paris */
+    :global(html.js) .work[data-gl="on"] .work-paris {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: block;
+      padding: 0.25rem 0.625rem;
+      border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 500;
+      font-size: 0.8125rem;
+      line-height: 1.2;
+      opacity: var(--work-paris);
+      transform: translate(calc(var(--paris-x, 50vw) + 0.5rem), calc(var(--paris-y, 50vh) - 50%));
+      pointer-events: none;
+    }
+    /* la pause de la vague : un petit rond en bas à droite (à gauche, le texte de la section About se pose sur
+       l'Atlantique), là une fois la Terre arrivée (--work-globe, home.ts) ; il ne prend les clics que visible */
+    :global(html.js) .work[data-gl="on"] .work-pause {
+      position: absolute;
+      right: var(--spacing-gutter);
+      bottom: clamp(1.25rem, 5vh, 3rem);
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+      border-radius: 50%;
+      background: #fff;
+      color: var(--ink);
+      font-size: 1rem;
+      opacity: var(--work-globe, 0);
+      pointer-events: none;
+      transition: border-color 0.35s ease;
+    }
+    :global(html.js) .work[data-gl="on"][data-globe] .work-pause {
+      pointer-events: auto;
+    }
+    :global(html.js) .work[data-gl="on"] .work-pause:hover {
+      border-color: color-mix(in srgb, var(--ink) 40%, transparent);
+    }
+    :global(html.js) .work-pause-icon {
+      display: flex;
+      grid-area: 1 / 1;
+    }
+    :global(html.js) .work-pause[aria-pressed="false"] .work-pause-play,
+    :global(html.js) .work-pause[aria-pressed="true"] .work-pause-pause {
+      display: none;
+    }
+    /* la flèche seulement pour un projet en ligne */
+    :global(html.js) .work-cursor:not([data-link]) :global(.icon) {
+      display: none;
+    }
+  }
+
+  /* About : sur fond blanc, en bleu foncé ; une fiche d'identité (le titre, une phrase, des lignes, le lien). Avec la toile (data-gl « on » de .work, juste
+     avant) : la section remonte d'un écran, transparente, sur la fin de la scène des projets, où l'on zoome sur la France
+     (Paris à droite) ; son texte se pose à gauche, sur l'Atlantique (en haut sur un écran étroit) ; elles repartent
+     ensemble */
+  .about {
+    --ink: var(--color-ink);
+    --ink-muted: color-mix(in srgb, var(--ink) 70%, #fff);
+    --rule: color-mix(in srgb, var(--ink) 14%, transparent);
+    position: relative;
+    z-index: 3;
+    display: grid;
+    align-content: center;
+    gap: clamp(1.5rem, 4vh, 3rem);
+    min-height: 100svh;
+    padding: clamp(5rem, 14vh, 9rem) var(--spacing-gutter);
+    background: #fff;
+    color: var(--ink);
+    container-type: inline-size;
+  }
+  .about ::selection {
+    background: var(--ink);
+    color: #fff;
+  }
+  /* la fiche : centrée en hauteur, de largeur de lecture */
+  .about-card {
+    display: grid;
+    gap: clamp(1.25rem, 3vh, 2rem);
+    max-width: 34rem;
+  }
+  .about-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.5rem, 6cqi, 5rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+  }
+  .about-intro {
+    font-size: clamp(1.0625rem, 1.3vw, 1.25rem);
+    line-height: 1.45;
+  }
+  /* les lignes : l'intitulé en petites capitales à gauche, la valeur à droite, entre des filets */
+  .about-facts {
+    border-bottom: 1px solid var(--rule);
+  }
+  .about-fact {
+    display: grid;
+    grid-template-columns: minmax(6rem, 2fr) minmax(0, 5fr);
+    gap: 1rem;
+    padding-block: 0.875rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+  .about-fact dt {
+    padding-top: 0.15em;
+    color: var(--ink-muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .about-fact dd {
+    font-weight: 500;
+  }
+  .about-note {
+    display: block;
+    color: var(--ink-muted);
+    font-weight: 400;
+    font-size: 0.8125rem;
+  }
+  /* « disponible » : un point du bleu vif de Paris sur le globe */
+  .about-live {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-mesh-mid);
+    vertical-align: 0.1em;
+  }
+  .about-cta {
+    font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html.js) .work[data-gl="on"] + .about {
+      margin-top: -100svh;
+      background: none;
+      pointer-events: none;
+    }
+    :global(html.js) .work[data-gl="on"] + .about > * {
+      pointer-events: auto;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) and (min-width: 48rem) {
+    :global(html.js) .work[data-gl="on"] + .about {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: clamp(2rem, 5vw, 5rem);
+    }
+    :global(html.js) .work[data-gl="on"] + .about > * {
+      grid-column: 1;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) and (max-width: 47.999rem) {
+    :global(html.js) .work[data-gl="on"] + .about {
+      align-content: start;
+      padding-top: calc(var(--spacing-header) + 1rem);
+      padding-bottom: 45svh;
+    }
+  }
 </style>

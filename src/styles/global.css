@@ -28,6 +28,9 @@
   /* fond du loader : moins foncé que la page (retour d'Axel, 11 novembre 2026), le bleu du haut du hero, sur lequel il
      se dissout ; le compteur blanc y garde 11,6:1 */
   --color-loader: #12306a;
+  /* le texte sur fond blanc (section Services) : le même bleu foncé, celui de la DA (demande d'Axel, 12 novembre 2026 :
+     le bleu presque noir de la page passait pour du noir) ; 12,7:1 sur le blanc */
+  --color-ink: #12306a;
   --color-mesh-deep: #0a2552;
   --color-mesh-slate: #4a5f7f;
   --color-mesh-mid: #2f6fd6;

@@ -1,0 +1,108 @@
+---
+/*
+ * Un lien dont les lettres roulent au survol (« Get in touch » des services et de la section About de l'accueil ;
+ * demande d'Axel, 12 novembre 2026 : « un truc classique d'anim de texte »). Au survol ou au focus clavier, les lettres
+ * montent une à une hors de leur ligne et leur copie arrive par-dessous ; puis sa flèche (Phosphor) part en haut à
+ * droite et revient d'en bas à gauche. Tout en CSS, sur la courbe du « + » du menu. Pas de soulignement (refusé, même
+ * jour) : le lien se distingue par sa graisse et sa flèche. Sa taille suit le texte qui l'entoure. Les lettres sont
+ * découpées au build, cachées aux lecteurs d'écran (sr-only lit le libellé). Sans souris fine ou en mouvement réduit,
+ * rien ne bouge.
+ */
+import Icon from "./Icon.astro";
+
+interface Props {
+  href: string;
+  label: string;
+}
+
+const { href, label } = Astro.props;
+// une espace seule dans un inline-block s'effacerait : insécable
+const chars = [...label].map((char) => (char === " " ? " " : char));
+---
+
+<a href={href} class="roll-link">
+  <span class="sr-only">{label}</span>
+  {/* les lettres, qui roulent au survol : chacune porte sa copie (data-char), cachée dessous */}
+  <span class="roll" aria-hidden="true">
+    {
+      chars.map((char, index) => (
+        <span class="roll-char" data-char={char} style={`--i: ${index}`}>
+          {char}
+        </span>
+      ))
+    }
+  </span>
+  {/* la flèche, et sa copie en bas à gauche, hors du cadre : elles roulent en diagonale après la dernière lettre */}
+  <span class="roll-arrow" style={`--i: ${chars.length}`} aria-hidden="true">
+    <span class="roll-arrow-icon"><Icon name="arrow-up-right" /></span>
+    <span class="roll-arrow-icon roll-arrow-copy"><Icon name="arrow-up-right" /></span>
+  </span>
+</a>
+
+<style>
+  .roll-link {
+    --roll-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    font-weight: 500;
+    /* la flèche ne passe jamais seule à la ligne */
+    white-space: nowrap;
+  }
+  /* le cadre de la flèche, rogné : 0,85em du texte. Décollé du texte et remonté (retour d'Axel sur capture,
+     12 novembre 2026 : trop collée au « h ») : environ 0,2em à droite, et le dessin (20 à 80 % du carré) dépasse un
+     peu la hauteur des capitales. En em de la flèche, d'où les valeurs plus grandes */
+  .roll-arrow {
+    position: relative;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    margin-left: 0.25em;
+    font-size: 0.85em;
+    vertical-align: 0.18em;
+    clip-path: inset(0);
+  }
+  .roll-arrow-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+  }
+  .roll-arrow-copy {
+    transform: translate(-100%, 100%);
+  }
+  /* le libellé, rogné à sa hauteur de ligne (un peu plus large : les lettres débordent parfois de leur chasse) */
+  .roll {
+    display: inline-block;
+    clip-path: inset(0 -0.1em);
+  }
+  .roll-char {
+    position: relative;
+    display: inline-block;
+  }
+  /* la copie de la lettre, une ligne plus bas, hors du cadre */
+  .roll-char::after {
+    content: attr(data-char);
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    /* chaque lettre monte d'une ligne, 25 ms après sa voisine de gauche ; en sortant, elles redescendent */
+    .roll-char {
+      transition: transform 0.6s var(--roll-ease) calc(var(--i) * 25ms);
+    }
+    .roll-link:hover .roll-char,
+    .roll-link:focus-visible .roll-char {
+      transform: translateY(-100%);
+    }
+    /* la flèche part en haut à droite, sa copie prend sa place ; en sortant, elles reviennent */
+    .roll-arrow-icon {
+      transition: transform 0.6s var(--roll-ease) calc(var(--i) * 25ms);
+    }
+    .roll-link:hover .roll-arrow-icon,
+    .roll-link:focus-visible .roll-arrow-icon {
+      transform: translate(100%, -100%);
+    }
+    .roll-link:hover .roll-arrow-copy,
+    .roll-link:focus-visible .roll-arrow-copy {
+      transform: none;
+    }
+  }
+</style>

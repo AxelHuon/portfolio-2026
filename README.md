@@ -21,6 +21,7 @@ Ce que le site a d'office :
 | Animation | GSAP 3.15 (plugins compris, licence gratuite y compris commerciale), Lenis 1.3.26 |
 | WebGL | three.js 0.186.1 (`@types/three` 0.186.0), seulement dans le chunk différé du hero |
 | Police | Fontshare : Satoshi (400, 500) partout, servie depuis le site |
+| Icônes | Phosphor (`@phosphor-icons/core` 2.1.1, graisse bold), écrites dans la page par `Icon.astro` |
 | Hébergement | Cloudflare Workers, assets statiques (Workers Builds à chaque push sur `main`) |
 | Outils | Node 24 (`.node-version`), pnpm 10 (`packageManager`), versions exactes (`pnpm add -E`) |
 
@@ -42,8 +43,10 @@ crédits sont épuisés.
 
 - `site.config.mjs` : le domaine (`SITE_URL`).
 - `src/data/site.ts` : contact, réseaux, mentions légales (encore les valeurs d'exemple).
-- `src/data/content.ts` : l'à-propos et les projets (encore ceux de la démo, images de `public/img/demo/`) ; les
-  textes des services (`services`) sont un premier jet.
+- `src/data/content.ts` : l'à-propos et la page `/projects` (encore la démo, images de `public/img/demo/`) ; les
+  textes des services (`services`) sont un premier jet. Les projets de l'accueil (`work`) sont les vrais ; le texte de la section About de l'accueil (`homeAbout`) est un
+  premier jet ; il manque
+  l'année de WhenToCop et de SideRun, et l'adresse de 333bei et de Thomas Chheang une fois en ligne.
 - `wrangler.jsonc` : `name` (le Worker Cloudflare).
 - Icônes : `node scripts/assets/icons.mjs` (depuis `src/assets/logo.svg`, sur `#06122b` : favicon SVG et ICO,
   apple-touch-icon, icônes du manifeste dont une maskable). Le logo du header et du loader lit le même SVG
@@ -63,14 +66,17 @@ public/_headers             cache immutable des fichiers versionnés, CSP et en-
 src/data/site.ts            réglages en code : identité, navigation, SEO, contact, mentions, micro-textes, JSON-LD
 src/data/content.ts         le contenu (accueil, à propos, projets) : importé par les .astro seulement
 src/layouts/Base.astro      le layout : SEO, polices, loader, ClientRouter, header, footer, démarrage des scripts
-src/components/             Header (bouton « Menu » et petit panneau), Footer, Picture, ProjectCard, ExternalLink
+src/components/             Header (bouton « Menu » et petit panneau), Footer, Picture, ProjectCard, ExternalLink,
+                            RollLink (le lien dont les lettres roulent : « Get in touch »),
+                            Icon (les icônes Phosphor : une clé par icône dans ICONS)
 src/pages/                  accueil, about, projects et fiches, contact, legal (mentions légales), 404, robots.txt, manifeste
 src/styles/global.css       Tailwind 4, tokens du projet, loader, état caché avant une entrée, base accessible
 src/scripts/app.ts          cycle de vie avec le ClientRouter
 src/scripts/transition.ts   transition entre les pages (fondu neutre)
 src/scripts/pages/          un module par page (init → destroy), chargé à la demande
 src/scripts/gl/hero-flow.ts le hero WebGL (three.js), importé par pages/home.ts
-src/scripts/chrome/         menu (panneau qui apparaît en fondu flou), loader du premier chargement
+src/scripts/gl/work-canvas.ts  la toile infinie des projets de l'accueil (three.js), importée par pages/home.ts
+src/scripts/chrome/         menu (panneau qui monte d'en bas en fondu, ses lignes à la suite), loader du premier chargement
 src/scripts/lib/            Lenis, courbes GSAP, plugins, media queries, préchargement, annonces
 scripts/assets/             images en AVIF et WebP, icônes, image de partage
 scripts/check-budgets.mjs   budgets et structure du build
@@ -106,7 +112,8 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   bleu ciel, crème) est le fond du hero et du loader : le shader le lit dans le CSS, `.mesh` (global.css) le reproduit
   pour le loader et le hero sans WebGL ; positions des taches à changer aux deux endroits. La page est d'un bleu
   presque noir (`#06122b`), l'accent bleu ciel (`#9fdcff`) marque les états (barre du loader, lien courant, focus,
-  sélection). `--color-background` = `site.themeColor` (barre du navigateur, manifeste, fond des icônes).
+  sélection). `--color-background` = `site.themeColor` (barre du navigateur, manifeste, fond des icônes). Sur fond
+  blanc (section Services), le texte est en bleu foncé `--color-ink` (`#12306a`, le bleu du loader).
 - **Police** : l'API Fonts d'Astro (`fonts` dans `astro.config.mjs`), fournisseur `fontshare`. Astro télécharge la
   police au build, la sert depuis `/_astro/fonts` (cache immutable, CSP `font-src 'self'`), et `<Font>` (Base.astro)
   la précharge avec une police de repli aux mêmes métriques : pas de saut à son arrivée. Satoshi partout : 400 pour le
@@ -143,17 +150,48 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   réglages (rayon, longueur de traînée, dissipation, diffusion…) sont les constantes en tête de `hero-flow.ts`.
 - **Repli** : sans JS, sans WebGL, en mouvement réduit, ou si le contexte est perdu, le `<picture>` reste
   (`data-gl="off"`).
-- **Services** (`index.astro`, `services` de `content.ts`) : une feuille blanche, texte en bleu nuit, qui monte
-  par-dessus le hero et finit par des coins arrondis sur le bleu nuit du footer. La transition suit le défilement
-  (ScrollTrigger en `scrub`, rien d'assisté : `pages/home.ts`, `SCENE`) : la feuille monte un peu plus vite que la
-  page, avec son contenu (`SCENE.lead` : 1,4 écran pendant que la page en défile un ; elle garde cette avance, une
-  marge négative dessous y recolle le footer), donc le hero est recouvert plus tôt et le titre arrive avec le blanc.
-  Son bord bombé (`.services-edge`) se gonfle puis s'aplatit (à plat au départ : en haut de la page, rien ne dépasse
-  sur le hero). Dessous, le hero s'enfonce à peine et s'assombrit. Pas de fondu de couleur : bleu nuit et blanc
-  mélangés donnent un gris sale. Les titres des services montent de leur masque en arrivant (`data-rise`). Sans JS ou
-  en mouvement réduit, la feuille monte simplement. Les scènes essayées avant sont gardées sur les branches
-  `scene/portrait-se-range` et `scene/panorama`. Le site ne défile jamais à l'horizontale (`overflow-x: clip` sur
-  `html` et `body`, global.css : le bord bombé dépasse de l'écran).
+- **Services** (`index.astro`, `services` de `content.ts`) : la scène « le portrait se range » (choix d'Axel, reprise
+  le 12 novembre 2026). Sur un écran large (64rem × 34rem au moins, avec JS, sans mouvement réduit), le hero reste
+  collé derrière les services (`.scene`) et se rogne au défilement (clip-path, scrub, sans glissade) en carte arrondie
+  dans la colonne de gauche (`.services-slot`), le visage recentré ; autour, le blanc de la scène ; à droite, les
+  services en bleu foncé (`--color-ink`), qui arrivent une fois la carte presque formée (`SCENE` dans
+  `pages/home.ts`, mêmes conditions dans le CSS). La section tient dans un écran (tailles en `dvh`). Les titres des
+  services montent de leur masque en arrivant (`data-rise`). Au survol de « Get in touch », ses lettres roulent une à une puis sa flèche part en diagonale, sans soulignement (CSS seul, `.cta-link` dans index.astro). Sur un écran étroit, sans JS
+  ou en mouvement réduit : le hero, puis les services en blanc. Les autres scènes essayées sont sur la branche
+  `scene/panorama` et dans l'historique (la feuille blanche qui montait sur le hero). Le site ne défile jamais à
+  l'horizontale (`overflow-x: clip` sur `html` et `body`, global.css).
+- **Projects** (`.work` dans index.astro, `gl/work-canvas.ts`, `WORK` dans `pages/home.ts`) : une toile infinie
+  des images des projets (choisie dans une veille, d'après le tutoriel Codrops « Infinite Canvas », après une tornade
+  et une mise au point en profondeur refusées). Fond blanc, comme les services ; le footer de l'accueil suit en
+  blanc. La transition (plus vite, sans changement de couleur, demande d'Axel du 12 novembre 2026) : quand le bas des
+  services touche celui de l'écran, leur conteneur (`.services-pin`) est épinglé un écran (ScrollTrigger `pin`, sans
+  place réservée, `PIN`) ; les projets (blancs aussi) montent par-dessus pendant que la carte du portrait, puis le titre, les services
+  et l'appel s'en vont vers le haut, et leurs cartes apparaissent du centre vers les bords. La toile : une grille de grandes cartes 3:2
+  sans bord, colonnes décalées, deux voisines jamais du même projet ; un peu bombée (ses bords reculent), plus encore
+  avec la vitesse. La scène se colle 150 svh (CSS sticky) et la toile défile avec la page ; on la glisse aussi (souris :
+  dans tous les sens ; toucher : à l'horizontale), avec de l'élan, et elle recule un peu pendant qu'on la tient. Le
+  défilement de la page n'est jamais retenu. Au survol, la carte visée se bombe autour du pointeur, sa forme (bords compris) comme son image, comme sous une goutte d'eau, la bosse suivant la souris et s'étirant dans le sens du geste (`DISTORT`, vertex et fragment shaders) ; elle grandit un peu, les autres rétrécissent et pâlissent vers le blanc (`FOCUS`) ; une
+  étiquette suit le pointeur avec le nom du projet ; un clic ouvre son site. L'index des projets (leurs liens) n'apparaît qu'au clavier
+  (focus), et éclaire leurs cartes. Rendu : caméra orthographique en pixels, un lot de cartes replacées à chaque
+  image, courbure dans le vertex shader. Données : `work` dans `content.ts`, images 3:2 dans `public/img/work/`
+  (sources dans `sources/work/`). Tant que la toile n'est pas prête, après un échec, sans JS ou en mouvement réduit :
+  une grille de cartes en HTML.
+- **La fin des projets et About** (`GLOBE` dans `gl/work-canvas.ts`, `WORK` dans `pages/home.ts`, `.about` dans
+  index.astro ; demande d'Axel du 12 novembre 2026) : après 1,5 écran de toile, 3 écrans de fin, au rythme du
+  défilement. La toile s'enroule en sphère (vertex shader : longitude et latitude proportionnelles à la place sur la
+  toile), qui rapetisse en tournant ; ses cartes se fondent dans la Terre en points (choisie sur maquettes : continents
+  en points bleu foncé ; un plan plein écran, la sphère calculée par pixel), qui tourne avec elles et s'arrête face à
+  Paris : un point à peine plus gros, dans le bleu vif du dégradé du hero, qui bat, et l'étiquette « Paris » (posée par la page d'après le globe, `onGlobe`).
+  Une vague organique part de Paris et traverse les points (ils grossissent à son passage ; sur la mer, ils foncent ;
+  `WAVE`) : elle bat en continu tant que la Terre est à l'écran, avec un bouton de pause en bas à droite (WCAG 2.2.2). Puis on zoome sur la France, l'axe pivotant (Paris à droite,
+  l'Atlantique à gauche, `GLOBE.focus`), pendant que la section About (`homeAbout` dans `content.ts`, premier jet), blanche, monte à côté : une fiche
+  d'identité (le titre, une phrase personnelle, des lignes Location, Age, Status entre des filets, « Get in touch ») ; son texte se pose à gauche, sur l'Atlantique (en haut sur mobile) ; elle
+  recouvre la scène d'un écran, transparente, et elles repartent ensemble. Essayés et refusés : un point bleu ciel pour
+  Paris, un zoom sur Paris vers une section About bleu ciel, deux anneaux fins au rythme du défilement, la Terre rangée
+  dans la colonne de gauche. Le masque des terres : `node scripts/assets/globe-mask.mjs`
+  (Natural Earth au 1:50 m, domaine public ; `public/img/globe/land-v2.png`, 2 048 × 1 024, source dans
+  `sources/globe/`). Sans la toile : la
+  grille, puis About.
 
 ## Animations (GSAP, Lenis, three.js)
 
@@ -168,7 +206,8 @@ Les règles, valables pour toute animation :
 - **Plugins** : enregistrés une fois, dans `src/scripts/lib/plugins/<plugin>.ts`, et importés de là. Courbes
   nommées dans `lib/ease.ts`. N'animer que `transform`, `opacity` et `clip-path`.
 - **three.js** : seulement dans `src/scripts/gl/`, importé par `import()` depuis un module de page : il reste hors du
-  JS initial (chunk `hero-flow`, déclaré dans `DEFERRED` de `check-budgets`). Une seule horloge, `gsap.ticker`.
+  JS initial (chunks `three`, `hero-flow` et `work-canvas`, déclarés dans `DEFERRED` de `check-budgets` ; `three`
+  est regroupé dans `astro.config.mjs`). Une seule horloge, `gsap.ticker`.
 - **Transitions** : `src/scripts/transition.ts` (`runExit` dans `e.loader`, `runEnter` après le swap). Jamais
   `visibility` ni `autoAlpha` sur `main` à l'arrivée (le focus du h1 échouerait). Les View Transitions natives sont
   coupées (script inline de Base), pour que GSAP garde la main.

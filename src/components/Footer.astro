@@ -1,13 +1,26 @@
 ---
+/*
+ * Le pied de page, commun à toutes les pages. Sur l'accueil, il suit les projets en blanc (demande d'Axel, 12 novembre
+ * 2026) : texte en bleu foncé, sans la marge du dessus (le bleu nuit de la page n'apparaît plus entre les deux).
+ */
 import { contact, legalLink, site } from "../data/site";
 
 const year = new Date().getFullYear();
 ---
 
-<footer class="mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-border px-gutter py-6 text-sm text-muted">
+<footer class="site-footer mt-24 flex flex-wrap items-center justify-between gap-4 border-t border-border px-gutter py-6 text-sm text-muted">
   <p>© {year} {site.name}</p>
   <ul class="flex flex-wrap gap-6">
     <li><a href={`mailto:${contact.email}`}>{contact.email}</a></li>
     <li><a href={legalLink.href}>{legalLink.label}</a></li>
   </ul>
 </footer>
+
+<style>
+  :global(html[data-page="home"]) .site-footer {
+    margin-top: 0;
+    border-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
+    background: #fff;
+    color: color-mix(in srgb, var(--color-ink) 70%, #fff);
+  }
+</style>

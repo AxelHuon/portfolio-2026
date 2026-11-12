@@ -1,0 +1,33 @@
+---
+/*
+ * Les icônes du site : Phosphor (@phosphor-icons/core ; demande d'Axel, 12 novembre 2026 : Phosphor pour toutes les
+ * icônes), jamais un caractère (↗) ni un dessin en CSS. Graisse bold : son trait (24/256 de l'icône) est proche de
+ * celui de Satoshi en 500 aux tailles où on les pose. Le SVG est écrit dans la page, en currentColor (il prend la
+ * couleur du texte), à 1em (sa taille suit le texte : la régler par le font-size du parent). Le dessin occupe environ
+ * 20 à 80 % de son carré. Décoratif : aria-hidden, le sens est dans le texte à côté.
+ * Une icône de plus : son import ?raw et sa clé dans ICONS (noms de phosphoricons.com, suffixe -bold).
+ */
+import arrowUpRight from "@phosphor-icons/core/assets/bold/arrow-up-right-bold.svg?raw";
+import equals from "@phosphor-icons/core/assets/bold/equals-bold.svg?raw";
+import pause from "@phosphor-icons/core/assets/bold/pause-bold.svg?raw";
+import play from "@phosphor-icons/core/assets/bold/play-bold.svg?raw";
+import x from "@phosphor-icons/core/assets/bold/x-bold.svg?raw";
+
+const ICONS = { "arrow-up-right": arrowUpRight, equals, pause, play, x } as const;
+
+interface Props {
+  name: keyof typeof ICONS;
+}
+
+const { name } = Astro.props;
+// les tracés du SVG de Phosphor, repris dans le nôtre (viewBox 256)
+const paths = /<svg[^>]*>([\s\S]*)<\/svg>/.exec(ICONS[name])?.[1] ?? "";
+---
+
+<svg class="icon" viewBox="0 0 256 256" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false" set:html={paths} />
+
+<style>
+  .icon {
+    flex: none;
+  }
+</style>

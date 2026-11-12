@@ -14,17 +14,31 @@
  * (le canvas est posé dessus), « off » (le <picture> reste).
  * Le texte caché ([data-reveal], global.css) est pris en main ici : son filet CSS est annulé, GSAP le montre.
  *
- * Puis les services (index.astro) : une feuille blanche. La transition (SCENE ; demandes d'Axel, 11 novembre 2026 :
- * la section en blanc, un passage très fluide, la main sur le défilement : rien n'est assisté, tout suit le défilement
- * en scrub). Pas de fondu de couleur (bleu nuit et blanc mélangés : un gris sale) : la feuille monte par-dessus le
- * hero, un peu plus vite que la page (SCENE.lead), avec son contenu : le titre arrive avec le blanc. Son bord bombé se
- * gonfle puis s'aplatit (SCENE.bulge ; à plat au départ : en haut de la page, rien ne dépasse sur le hero). Dessous, le
- * hero s'enfonce à peine (SCENE.sink) et s'assombrit (SCENE.dim). Les titres des services montent de leur masque en
- * arrivant (RISE, data-rise). Tout est défait par mm.revert() (ScrollTrigger compris).
+ * Puis les services (index.astro), sur la scène « le portrait se range » (SCENE ; choix d'Axel, 11 novembre 2026,
+ * reprise le 12) : le hero reste collé derrière les services, et une timeline (scrub) le rogne (clip-path), entre le
+ * haut de la page et l'arrivée des services en haut de l'écran, jusqu'à la place vide de leur colonne de gauche
+ * (data-portrait-slot) : une carte arrondie, où l'image se décale pour centrer le visage. Le nom et le métier
+ * s'effacent, le fondu du bas aussi ; autour de la carte, le blanc de la scène ; la colonne des services (leur texte
+ * bleu) arrive une fois la carte presque formée. Rien n'est assisté : tout suit le défilement (la glissade de la
+ * branche a été retirée). Les titres des services montent de leur masque en arrivant (RISE, data-rise). Sur un écran
+ * étroit ou bas : le hero, puis les services en blanc, sans scène. Tout est défait par mm.revert() (ScrollTrigger
+ * compris).
+ *
+ * Puis les projets (index.astro, .work ; demande d'Axel, 12 novembre 2026) : une toile infinie de leurs images
+ * (gl/work-canvas.ts, chargée quand la section approche : WORK.preload ; choisie dans une veille, après une tornade et
+ * une mise au point en profondeur refusées ; fond blanc ; au survol, l'image se bombe sous le pointeur). La transition (demandes d'Axel, 12 novembre 2026 :
+ * « rester en scroll block sur services, voir les éléments disparaître », puis plus vite, sans changement de couleur) :
+ * quand le bas des services touche celui de l'écran, ils sont épinglés un écran (leur conteneur, [data-services-pin] :
+ * ScrollTrigger pin, sans place réservée) ; les projets montent par-dessus pendant que la carte du portrait, puis le
+ * titre, les services et l'appel s'en vont vers le haut (PIN), et leurs cartes apparaissent du centre vers les bords
+ * (--work-reveal) ; puis la scène des projets se colle (CSS sticky) et la toile défile avec la page ; on la glisse aussi dans tous les sens. Le projet survolé (sur la toile ou
+ * dans l'index, data-state) est nommé par une étiquette qui suit le pointeur ; un clic sur une carte suit le lien du
+ * projet. Tant que la toile n'est pas prête, ou après un échec : la grille de cartes en HTML.
  */
 import { gsap } from "gsap";
 import { afterLoader, onLoaderProgress } from "../chrome/loader";
 import type { HeroFlow } from "../gl/hero-flow";
+import type { WorkCanvas } from "../gl/work-canvas";
 import { EASE } from "../lib/ease";
 import { createSmoothScroll } from "../lib/lenis";
 import { ScrollTrigger } from "../lib/plugins/scroll-trigger";
@@ -56,26 +70,37 @@ const DEZOOM = 0.22;
 /** En navigation, le texte n'attend pas le canvas au-delà de ce délai (ms) */
 const TEXT_WAIT = 900;
 /**
- * La transition hero → services : ses conditions (le CSS de index.astro les reprend : à changer ensemble), le hero
- * sous la feuille (ce qu'il descend, en % de sa hauteur, et son ombre), l'avance de la feuille (en hauteurs d'écran :
- * elle monte de 1 + lead écrans pendant que la page en défile un, puis défile normalement, gardant cette avance), et
- * la part du trajet où son bord bombé est au plus haut (à plat au départ et une fois la feuille en haut). Retours
- * d'Axel, 11 novembre 2026 : sa tête restait trop longtemps, puis une vague blanche partie devant la feuille laissait un
- * grand vide au-dessus du titre ; c'est la feuille elle-même, avec son contenu, qui prend de l'avance
+ * La scène hero → services, « le portrait se range » (choix d'Axel, 11 novembre 2026, gardée sur la branche
+ * scene/portrait-se-range et reprise le 12 novembre à sa demande) : ses conditions (le CSS de index.astro les reprend :
+ * à changer ensemble), l'arrondi de la carte (px, celui du panneau du menu), la part de la course où la carte est
+ * formée, et [début, fin] de l'arrivée de la colonne des services (la carte presque formée : leur texte bleu ne passe
+ * pas sur la photo). Sans la glissade de la branche : le défilement reste à la main (retour d'Axel, 11 novembre 2026)
  */
 const SCENE = {
-  query: "(prefers-reduced-motion: no-preference)",
-  sink: 10,
-  dim: 0.35,
-  lead: 0.4,
-  bulge: { peak: 0.35, flat: 0.7 },
+  query: "(prefers-reduced-motion: no-preference) and (min-width: 64rem) and (min-height: 34rem)",
+  radius: 16,
+  formed: 0.75,
+  content: [0.4, 0.75],
 } as const;
+/** Les titres des services qui montent de leur masque : durée (s), décalage entre deux, seuil (haut du titre) */
+const RISE = { duration: 1.1, stagger: 0.08, start: "top 88%" } as const;
 /**
- * Les titres des services qui montent de leur masque : durée (s), décalage entre deux, seuil (haut du titre ; la
- * feuille est en avance de SCENE.lead écran sur sa place dans la page : le seuil aussi, pour qu'ils montent à 88 % de
- * l'écran)
+ * La fin des services, épinglée (demandes d'Axel, 12 novembre 2026 : « rester en scroll block sur services, voir les
+ * éléments disparaître », puis, le même jour, plus vite, sans le changement de couleur) : la
+ * durée de l'épinglage (en écrans : le temps que les projets montent par-dessus), la montée des éléments qui s'en vont
+ * (en écrans), et [début, fin], en part de l'épinglage, du départ de la carte du portrait, puis de celui du texte (le
+ * titre, les services, l'appel, l'un après l'autre)
  */
-const RISE = { duration: 1.1, stagger: 0.08, start: `top ${88 + SCENE.lead * 100}%` } as const;
+const PIN = { length: 1, rise: 0.08, card: [0, 0.35], text: [0.05, 0.6] } as const;
+/**
+ * Les projets : la distance (rootMargin) à laquelle la toile se charge (assez tôt pour être prête à l'arrivée : la
+ * section change alors de hauteur, hors de l'écran) ; la scène collée, en écrans (le CSS de index.astro en fixe la
+ * hauteur, à changer ensemble) : pan, la toile qui défile avec la page, puis morph, la fin de la section (la sphère, la
+ * Terre qui se range à côté de la section About : gl/work-canvas.ts, GLOBE) ; [début, fin] de l'arrivée de l'étiquette
+ * « Paris », dans la fin de la section, une fois la Terre posée face à Paris (elle reste ensuite), et du bouton de la
+ * pause de la vague du globe (là avec la Terre)
+ */
+const WORK = { preload: "300% 0px", pan: 1.5, morph: 3, paris: [0.6, 0.66], globe: [0.5, 0.58] } as const;
 
 const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -209,28 +234,55 @@ export function init(kind: Kind): PageInstance {
     markReady();
   }
 
-  // la transition, au rythme du défilement : la feuille blanche des services monte, le hero s'enfonce dessous
+  // la scène : le hero se range en carte à gauche des services, au rythme du défilement (sans glissade)
   const services = document.querySelector<HTMLElement>("[data-services]");
-  if (hero && services) {
+  const slot = document.querySelector<HTMLElement>("[data-portrait-slot]");
+  if (hero && services && slot) {
     mm.add(SCENE.query, () => {
       const frame = hero.querySelector<HTMLElement>("[data-hero-frame]");
-      const dim = hero.querySelector<HTMLElement>("[data-hero-dim]");
-      const edge = services.querySelector<HTMLElement>("[data-services-edge]");
-      // de la feuille en bas de l'écran (à sa place) à la feuille en haut : elle monte plus vite que la page
-      const { peak, flat } = SCENE.bulge;
+      const shade = hero.querySelector<HTMLElement>("[data-hero-shade]");
+      const text = hero.querySelector<HTMLElement>("[data-hero-text]");
+      const main = services.querySelector<HTMLElement>("[data-services-main]");
+      const focus = { x: Number(hero.dataset.focusX ?? 0.5), y: Number(hero.dataset.focusY ?? 0.5) };
+
+      /**
+       * La carte, en px dans le hero (collé en haut : ce sont aussi ceux de l'écran) : la place de la colonne de
+       * gauche une fois collée (son top CSS), et le décalage de l'image qui y centre le visage. Le visage est à focus
+       * de l'écran (object-position = focus) ; le décalage est borné pour que l'image couvre toujours la carte.
+       */
+      const card = () => {
+        const rect = slot.getBoundingClientRect();
+        const top = Number.parseFloat(getComputedStyle(slot).top) || 0;
+        const width = hero.clientWidth;
+        const height = hero.clientHeight;
+        const right = width - rect.left - rect.width;
+        const bottom = height - top - rect.height;
+        return {
+          clip: `inset(${top}px ${right}px ${bottom}px ${rect.left}px round ${SCENE.radius}px)`,
+          x: gsap.utils.clamp(rect.left + rect.width - width, rect.left, rect.left + rect.width / 2 - focus.x * width),
+          y: gsap.utils.clamp(top + rect.height - height, top, top + rect.height / 2 - focus.y * height),
+        };
+      };
+
+      // de la page en haut (le hero) aux services en haut de l'écran ; la carte est formée à SCENE.formed, la colonne
+      // des services arrive ensuite à côté d'elle
+      const [contentFrom, contentTo] = SCENE.content;
       gsap
         .timeline({
           defaults: { ease: "none" },
           scrollTrigger: { trigger: services, start: "top bottom", end: "top top", scrub: true, invalidateOnRefresh: true },
         })
-        // l'avance de la feuille, gardée ensuite (index.astro retire la même hauteur sous elle : le footer la suit)
-        .fromTo(services, { y: 0 }, { y: () => -SCENE.lead * window.innerHeight, duration: 1 }, 0)
-        .fromTo(frame ?? {}, { yPercent: 0 }, { yPercent: SCENE.sink, duration: flat }, 0)
-        .fromTo(dim ?? {}, { opacity: 0 }, { opacity: SCENE.dim, duration: flat }, 0)
-        // le bord bombé : à plat tant que la feuille est sous l'écran (en haut de la page, rien ne dépasse sur le hero),
-        // il se gonfle en montant, puis s'aplatit avant que la feuille touche le haut
-        .fromTo(edge ?? {}, { scaleY: 0 }, { scaleY: 1, duration: peak, ease: "power1.out" }, 0)
-        .to(edge ?? {}, { scaleY: 0, duration: flat - peak, ease: "power1.in" }, peak);
+        .fromTo(
+          hero,
+          { clipPath: "inset(0px 0px 0px 0px round 0px)" },
+          { clipPath: () => card().clip, duration: SCENE.formed, ease: "power1.out" },
+          0,
+        )
+        .fromTo(frame ?? {}, { x: 0, y: 0 }, { x: () => card().x, y: () => card().y, duration: SCENE.formed, ease: "power1.out" }, 0)
+        .fromTo(text ?? {}, { opacity: 1, y: 0 }, { opacity: 0, y: 60, duration: 0.3, ease: "power1.in" }, 0)
+        .fromTo(shade ?? {}, { opacity: 1 }, { opacity: 0, duration: 0.4 }, 0.1)
+        .fromTo(main ?? {}, { opacity: 0 }, { opacity: 1, duration: contentTo - contentFrom }, contentFrom)
+        .set({}, {}, 1);
     });
   }
 
@@ -248,6 +300,240 @@ export function init(kind: Kind): PageInstance {
         ),
     });
   });
+
+  // la fin des services, épinglée un écran : les projets, blancs aussi, montent par-dessus (pinSpacing false : la
+  // suite de la page continue de défiler sous les services fixés) pendant que leurs éléments s'en vont vers le haut,
+  // l'un après l'autre, comme poussés ; la carte du portrait part la première. Le conteneur est épinglé, pas la
+  // section (sa colonne est animée par la scène)
+  const servicesPin = document.querySelector<HTMLElement>("[data-services-pin]");
+  if (services && servicesPin) {
+    mm.add(MQ.motion, () => {
+      const texts = services.querySelectorAll<HTMLElement>(".services-head, .service, .services-cta");
+      const timeline = gsap.timeline({
+        defaults: { ease: "power1.in" },
+        scrollTrigger: {
+          trigger: servicesPin,
+          pin: true,
+          pinSpacing: false,
+          // le bas de la section touche celui de l'écran ; fini quand les projets sont en haut
+          start: "bottom bottom",
+          end: () => `+=${PIN.length * window.innerHeight}`,
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      });
+      const [cardFrom, cardTo] = PIN.card;
+      if (hero) timeline.to(hero, { opacity: 0, y: () => -PIN.rise * window.innerHeight, duration: cardTo - cardFrom }, cardFrom);
+      const [textFrom, textTo] = PIN.text;
+      timeline.to(
+        texts,
+        {
+          opacity: 0,
+          y: () => -PIN.rise * window.innerHeight,
+          duration: (textTo - textFrom) / 2,
+          stagger: { amount: (textTo - textFrom) / 2 },
+        },
+        textFrom,
+      );
+      timeline.set({}, {}, 1);
+    });
+  }
+
+  // les projets : la toile infinie (gl/work-canvas.ts), chargée quand la section approche ; sans elle, la grille
+  const work = document.querySelector<HTMLElement>("[data-work]");
+  const workStage = work?.querySelector<HTMLElement>("[data-work-stage]");
+  const workGl = work?.querySelector<HTMLElement>("[data-work-gl]");
+  if (work && workStage && workGl) {
+    mm.add(MQ.motion, () => {
+      const items = Array.from(work.querySelectorAll<HTMLElement>("[data-work-item]"));
+      const textures = items.map((item) => item.dataset.workTexture ?? "");
+      const links = items.map((item) => item.querySelector<HTMLAnchorElement>("a[href]"));
+      const names = items.map((item) => item.querySelector(".work-name-inner")?.textContent?.trim() ?? "");
+      const cursor = work.querySelector<HTMLElement>("[data-work-cursor]");
+      const cursorName = cursor?.querySelector<HTMLElement>("[data-work-cursor-name]");
+      const state = { reveal: 0, scroll: 0, morph: 0 };
+      let gallery: WorkCanvas | null = null;
+      let live = true;
+
+      // l'entrée (la scène monte à l'écran : les cartes apparaissent, puis le titre et l'index, par le CSS), le
+      // défilement pendant que la scène est collée (la toile défile avec), puis la fin de la section (le titre et
+      // l'invitation s'effacent, l'étiquette « Paris » arrive, par le CSS)
+      const [parisIn, parisShown] = WORK.paris;
+      const apply = () => {
+        work.style.setProperty("--work-reveal", state.reveal.toFixed(3));
+        work.style.setProperty("--work-morph", state.morph.toFixed(4));
+        const paris = gsap.utils.clamp(0, 1, (state.morph - parisIn) / (parisShown - parisIn));
+        work.style.setProperty("--work-paris", paris.toFixed(3));
+        // le bouton de la pause de la vague : là avec la Terre (à mi-course), cliquable une fois visible
+        const globeShown = gsap.utils.clamp(0, 1, (state.morph - WORK.globe[0]) / (WORK.globe[1] - WORK.globe[0]));
+        work.style.setProperty("--work-globe", globeShown.toFixed(3));
+        work.toggleAttribute("data-globe", globeShown > 0.5);
+        gallery?.setReveal(state.reveal);
+        gallery?.setScroll(state.scroll);
+        gallery?.setMorph(state.morph);
+      };
+      const onEntry = (self: ScrollTrigger) => {
+        state.reveal = self.progress;
+        apply();
+      };
+      // la scène collée : d'abord la toile qui défile (pan), puis la fin de la section (morph), en part de sa longueur
+      const onScroll = (self: ScrollTrigger) => {
+        const length = Math.max(0, self.end - self.start);
+        const pan = (length * WORK.pan) / (WORK.pan + WORK.morph);
+        const scrolled = length * self.progress;
+        state.scroll = Math.min(scrolled, pan);
+        state.morph = length > pan ? gsap.utils.clamp(0, 1, (scrolled - pan) / (length - pan)) : 0;
+        apply();
+      };
+      ScrollTrigger.create({ trigger: work, start: "top bottom", end: "top top", onRefresh: onEntry, onUpdate: onEntry });
+      ScrollTrigger.create({ trigger: work, start: "top top", end: "bottom bottom", onRefresh: onScroll, onUpdate: onScroll });
+
+      // le projet survolé (sur la toile ou dans l'index) : éclairé dans l'index, nommé par l'étiquette
+      let labelShown = false;
+      const show = (project: number | null) => {
+        items.forEach((item, index) => {
+          if (index === project) item.dataset.state = "active";
+          else delete item.dataset.state;
+        });
+        if (!cursor || !cursorName) return;
+        if (project === null) {
+          delete cursor.dataset.visible;
+          labelShown = false;
+          return;
+        }
+        cursorName.textContent = names[project] ?? "";
+        if (links[project]) cursor.dataset.link = "";
+        else delete cursor.dataset.link;
+      };
+      // l'étiquette suit le pointeur avec un peu de retard ; elle n'apparaît que sur une carte de la toile
+      const followX = cursor ? gsap.quickTo(cursor, "x", { duration: 0.35, ease: "power3.out" }) : null;
+      const followY = cursor ? gsap.quickTo(cursor, "y", { duration: 0.35, ease: "power3.out" }) : null;
+      const onStageMove = (event: PointerEvent) => {
+        if (event.pointerType !== "mouse" || !cursor) return;
+        const rect = workStage.getBoundingClientRect();
+        const x = event.clientX - rect.left + 16;
+        const y = event.clientY - rect.top + 16;
+        // à sa première apparition, l'étiquette se pose sous le pointeur au lieu d'y glisser
+        if (labelShown) {
+          followX?.(x);
+          followY?.(y);
+        } else {
+          followX?.(x, x);
+          followY?.(y, y);
+        }
+      };
+      workStage.addEventListener("pointermove", onStageMove);
+
+      // l'index : survoler ou atteindre au clavier un projet éclaire ses cartes
+      const listeners = items.map((item, index) => {
+        const on = () => {
+          gallery?.highlight(index);
+          show(index);
+        };
+        const off = () => {
+          gallery?.highlight(null);
+          show(null);
+        };
+        item.addEventListener("pointerenter", on);
+        item.addEventListener("pointerleave", off);
+        item.addEventListener("focusin", on);
+        item.addEventListener("focusout", off);
+        return () => {
+          item.removeEventListener("pointerenter", on);
+          item.removeEventListener("pointerleave", off);
+          item.removeEventListener("focusin", on);
+          item.removeEventListener("focusout", off);
+        };
+      });
+
+      // la pause de la vague du globe (WCAG 2.2.2) : son état, son nom pour les lecteurs d'écran
+      const pauseButton = work.querySelector<HTMLButtonElement>("[data-work-pause]");
+      let paused = false;
+      const onPause = () => {
+        paused = !paused;
+        gallery?.setPaused(paused);
+        if (!pauseButton) return;
+        pauseButton.setAttribute("aria-pressed", String(paused));
+        const label = paused ? pauseButton.dataset.labelPlay : pauseButton.dataset.labelPause;
+        if (label) pauseButton.setAttribute("aria-label", label);
+      };
+      pauseButton?.addEventListener("click", onPause);
+
+      const fail = () => {
+        work.dataset.gl = "off";
+        ScrollTrigger.refresh();
+      };
+      const load = async () => {
+        const mod = await import("../gl/work-canvas").catch(() => null);
+        if (!live) return;
+        const created = mod
+          ? await mod
+              .createWorkCanvas({
+                container: workGl,
+                textures,
+                land: work.dataset.globeLand ?? "",
+                state: { ...state },
+                onHover: (project) => {
+                  show(project);
+                  if (project !== null && cursor) {
+                    cursor.dataset.visible = "";
+                    labelShown = true;
+                  }
+                },
+                // un clic sur une carte : le lien du projet (nouvel onglet), s'il est en ligne
+                onOpen: (project) => links[project]?.click(),
+                onLost: fail,
+                // l'étiquette de Paris suit la Terre (à côté de ses anneaux) quand elle se range
+                onGlobe: ({ x, y, reach }) => {
+                  work.style.setProperty("--paris-x", `${(x + reach).toFixed(1)}px`);
+                  work.style.setProperty("--paris-y", `${y.toFixed(1)}px`);
+                },
+              })
+              .catch(() => null)
+          : null;
+        if (!live) {
+          created?.destroy();
+          return;
+        }
+        if (!created) return fail();
+        gallery = created;
+        // la pause a pu être demandée pendant le chargement
+        if (paused) gallery.setPaused(true);
+        // la grille laisse place à la scène collée : la section change de hauteur, les positions sont recalculées
+        work.dataset.gl = "on";
+        ScrollTrigger.refresh();
+        apply();
+      };
+      const near = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          near.disconnect();
+          void load();
+        },
+        { rootMargin: WORK.preload },
+      );
+      near.observe(work);
+
+      return () => {
+        live = false;
+        near.disconnect();
+        workStage.removeEventListener("pointermove", onStageMove);
+        for (const remove of listeners) remove();
+        gallery?.destroy();
+        gallery = null;
+        show(null);
+        work.dataset.gl = "pending";
+        work.style.removeProperty("--work-reveal");
+        work.style.removeProperty("--work-morph");
+        work.style.removeProperty("--work-paris");
+        work.style.removeProperty("--paris-x");
+        work.style.removeProperty("--work-globe");
+        work.removeAttribute("data-globe");
+        pauseButton?.removeEventListener("click", onPause);
+        work.style.removeProperty("--paris-y");
+      };
+    });
+  }
 
   // les positions dépendent de la police (hauteur des lignes) : recalculées une fois Satoshi chargée
   void document.fonts.ready.then(() => {

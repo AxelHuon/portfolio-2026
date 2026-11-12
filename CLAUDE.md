@@ -15,6 +15,7 @@ Architecture, commandes et mise en place : `README.md`. Réponses et commentaire
 - Le contenu (`src/data/content.ts`) n'est importé que par les `.astro`, jamais par `src/scripts`.
 - Liens internes sans `.html` ni barre finale (`/about`).
 - Médias dans `public/`, noms versionnés (`-v1`), affichés par `<Picture>` ; jamais `astro:assets`.
+- Icônes : Phosphor seulement, par `<Icon name>` (`src/components/Icon.astro`) ; jamais un caractère (↗) ni un dessin CSS.
 - Un module par page pour le JS (`src/scripts/pages/<data-page>.ts`, `init(kind)` → `{ destroy() }`) : jamais de
   `<script>` de page dans un `.astro`, jamais d'écoute `astro:*` dans une page, `destroy` défait tout.
 - Plugins GSAP importés depuis `src/scripts/lib/plugins/` ; mouvement réduit par `gsap.matchMedia()` ; n'animer

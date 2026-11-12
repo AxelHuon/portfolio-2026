@@ -12,6 +12,9 @@ import { SITE_URL, UNLISTED } from "./site.config.mjs";
 // n'est jamais importé côté client.
 const ROUTER = /[\\/]node_modules[\\/]astro[\\/](dist[\\/](transitions|prefetch|runtime)[\\/]|components[\\/]ClientRouter\.astro)/;
 const BASE = /[\\/]src[\\/](scripts|data)[\\/]|[\\/]node_modules[\\/]gsap[\\/]|vite[\\/]preload-helper/;
+// three.js : un chunk à lui, chargé à la demande, partagé par les deux scènes de l'accueil (gl/hero-flow,
+// gl/work-canvas) ; jamais dans le JS initial (check:budgets)
+const THREE = /[\\/]node_modules[\\/]three[\\/]/;
 
 // Redirections définitives : html_handling de Cloudflare renvoie /about.html et /about/ vers /about en 307
 // (temporaire) ; dist/_redirects, écrit après le build depuis la liste des pages, les passe en 301. Les règles de
@@ -61,7 +64,7 @@ export default defineConfig({
   integrations: [sitemap({ filter: (page) => !UNLISTED.test(new URL(page).pathname) }), redirects301],
   vite: {
     plugins: [tailwindcss()],
-    // hero-flow (three.js, chargé à la demande par l'accueil) fait 530 Ko minifié : au-delà des 500 par défaut
+    // three (three.js, chargé à la demande par l'accueil) fait environ 520 Ko minifié : au-delà des 500 par défaut
     build: { chunkSizeWarningLimit: 600 },
     environments: {
       client: {
@@ -72,6 +75,7 @@ export default defineConfig({
                 groups: [
                   { name: "router", tags: ["$initial"], test: ROUTER },
                   { name: "base", tags: ["$initial"], test: BASE },
+                  { name: "three", test: THREE },
                 ],
               },
             },

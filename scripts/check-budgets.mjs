@@ -37,8 +37,13 @@ const CAP = {
 // un identifiant généré, refusé ici.
 const PERSIST_ROOTS = new Set([]);
 // Chunks chargés à la demande, repérés au nom ({ name, re: /^nom[.-]/ }) : jamais dans le JS initial d'une page.
-// hero-flow : le WebGL du hero (three.js compris, 131 Kio gzip au 11 novembre 2026), importé par pages/home.ts.
-const DEFERRED = [{ name: "hero-flow", re: /^hero-flow[.-]/ }];
+// Tous importés par pages/home.ts : hero-flow (le WebGL du hero), work-canvas (la toile infinie des projets, 12
+// novembre 2026) et three (three.js, leur chunk commun : astro.config.mjs).
+const DEFERRED = [
+  { name: "hero-flow", re: /^hero-flow[.-]/ },
+  { name: "work-canvas", re: /^work-canvas[.-]/ },
+  { name: "three", re: /^three[.-]/ },
+];
 // Estimation : signalée, sans échec.
 const HTML_HINT = { raw: 15_000, gzip: 5_000 };
 

@@ -61,7 +61,7 @@ export interface PageMeta {
 export const pageMeta: Record<PageId, PageMeta> = {
   home: {
     title: `${site.name} — Front-end developer`,
-    description: "Portfolio of Axel Huon, front-end developer: websites, web apps, motion and WebGL.",
+    description: "Portfolio of Axel Huon, front-end developer: websites, web apps and e-commerce, with smooth animations.",
   },
   about: { title: `About — ${site.name}`, description: "Background and way of working of Axel Huon, front-end developer." },
   projects: { title: `Projects — ${site.name}`, description: "A selection of websites and web apps built by Axel Huon." },
@@ -112,6 +112,11 @@ export const uiText = {
   close: "Close",
   /** suffixe masqué des liens qui s'ouvrent dans un nouvel onglet */
   newTab: "(opens in a new tab)",
+  /** l'invitation sous la toile des projets de l'accueil */
+  dragToExplore: "Drag to explore",
+  /** le bouton de la vague du globe, à la fin des projets (WCAG 2.2.2) */
+  pauseAnimation: "Pause the animation",
+  playAnimation: "Play the animation",
   recentProjects: "Recent projects",
   allProjects: "All projects",
   backToProjects: "Back to projects",

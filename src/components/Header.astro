@@ -3,14 +3,16 @@
  * En-tête : le logo et le nom du site à gauche, posé en haut de page (absolu : il défile avec elle) ; à droite, fixée pour rester
  * à portée au défilement, un bouton « Menu » qui ouvre un petit panneau (src/scripts/chrome/menu.ts) : les liens, un
  * filet, l'e-mail et les profils (GitHub, LinkedIn). L'idée d'un menu compact vient d'une référence d'Axel (11 novembre 2026), le
- * dessin est celui du site : bleu nuit, Satoshi, point bleu ciel pour la page courante. Le bouton est de la même matière
- * que le panneau (bleu nuit, bordure fine) : un « + » à côté du libellé, qui pivote en « × » à l'ouverture.
+ * dessin est celui du site : bleu nuit, Satoshi, point bleu ciel pour la page courante. Le bouton : un rond bleu nuit
+ * sans texte (choix d'Axel sur maquettes, 12 novembre 2026 : « rond seul »), deux traits blancs qui tournent en croix à
+ * l'ouverture ; son nom (« Menu ») est dit aux lecteurs d'écran par aria-label.
  * Le header occupe --spacing-header, réservé en haut de main ; le hero de l'accueil remonte dessous. Le nom du loader
  * (global.css, .loader-name) se pose exactement sur le sien : à changer ensemble.
  * Sans JS : pas de menu, les liens restent affichés en ligne (variante no-js de global.css).
  * Non persistant : remplacé à chaque navigation, son aria-current vient du serveur.
  */
 import { contact, nav, site, uiText, type PageId } from "../data/site";
+import Icon from "./Icon.astro";
 import Logo from "./Logo.astro";
 
 interface Props {
@@ -40,9 +42,10 @@ const current = (id: string) => (id === page ? "page" : undefined);
   </nav>
 
   <div class="actions" data-header-actions>
-    <button type="button" class="toggle" data-menu-toggle aria-expanded="false" aria-controls="site-menu">
-      {uiText.menu}
-      <span class="plus" aria-hidden="true"></span>
+    <button type="button" class="toggle" data-menu-toggle aria-expanded="false" aria-controls="site-menu" aria-label={uiText.menu}>
+      {/* deux traits (Phosphor equals), qui laissent place à une croix (x) à l'ouverture */}
+      <span class="toggle-icon toggle-open" aria-hidden="true"><Icon name="equals" /></span>
+      <span class="toggle-icon toggle-close" aria-hidden="true"><Icon name="x" /></span>
     </button>
   </div>
 
@@ -52,7 +55,7 @@ const current = (id: string) => (id === page ? "page" : undefined);
         {
           nav.map((item) => (
             <li>
-              <a href={item.href} aria-current={current(item.id)} class="menu-link">
+              <a href={item.href} aria-current={current(item.id)} class="menu-link" data-menu-item>
                 {item.label}
                 <span class="menu-dot" aria-hidden="true" />
               </a>
@@ -61,7 +64,7 @@ const current = (id: string) => (id === page ? "page" : undefined);
         }
       </ul>
     </nav>
-    <div class="menu-foot">
+    <div class="menu-foot" data-menu-item>
       <a href={`mailto:${contact.email}`} class="menu-small">{contact.email}</a>
       {
         contact.socials.length > 0 && (
@@ -69,7 +72,9 @@ const current = (id: string) => (id === page ? "page" : undefined);
             {contact.socials.map((social) => (
               <li>
                 <a href={social.href} target="_blank" rel="me noopener noreferrer" class="menu-small">
-                  {social.label} ↗<span class="sr-only"> {uiText.newTab}</span>
+                  {social.label}
+                  <Icon name="arrow-up-right" />
+                  <span class="sr-only"> {uiText.newTab}</span>
                 </a>
               </li>
             ))}
@@ -106,68 +111,69 @@ const current = (id: string) => (id === page ? "page" : undefined);
   /* le bouton du menu : fixe, en haut à droite, centré dans la hauteur du header */
   .actions {
     position: fixed;
-    top: calc((var(--spacing-header) - 2.75rem) / 2);
+    top: calc((var(--spacing-header) - 3rem) / 2);
     right: var(--spacing-gutter);
     z-index: 30;
   }
   :global(html:not(.js)) .actions {
     display: none;
   }
-  /* la même matière que le panneau : bleu nuit, bordure fine, qui s'éclaire au survol et menu ouvert */
+  /* un rond bleu nuit, de la matière du panneau (bordure fine, qui s'éclaire au survol et menu ouvert, en douceur :
+     trop brusque sans transition, retour d'Axel) ; il grandit un peu au survol (scale, pas transform : l'entrée du
+     header anime son transform). Les deux traits tournent d'un quart de tour en s'effaçant, la croix arrive en sens
+     inverse */
   .toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
-    min-height: 2.75rem;
-    padding: 0 1rem;
-    border: 1px solid color-mix(in srgb, var(--color-foreground) 14%, transparent);
-    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid color-mix(in srgb, var(--color-foreground) 16%, transparent);
+    border-radius: 50%;
     background: var(--color-background);
     color: var(--color-foreground);
-    font-weight: 500;
-    font-size: 0.9375rem;
-    /* la bordure s'éclaire en douceur (retour d'Axel : trop brusque sans transition) */
-    transition: border-color 0.35s ease;
+    font-size: 1.25rem;
+    transition:
+      border-color 0.35s ease,
+      scale 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .toggle:hover,
   .toggle[aria-expanded="true"] {
     border-color: color-mix(in srgb, var(--color-foreground) 34%, transparent);
   }
-  /* le « + » en deux traits ; un quart de tour à 45° en fait un « × » */
-  .plus {
-    position: relative;
-    width: 0.625rem;
-    height: 0.625rem;
-    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  .toggle:hover {
+    scale: 1.06;
   }
-  .plus::before,
-  .plus::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 1.5px;
-    margin-top: -0.75px;
-    border-radius: 1px;
-    background: currentColor;
+  .toggle-icon {
+    display: flex;
+    grid-area: 1 / 1;
+    transition:
+      transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.25s ease;
   }
-  .plus::after {
-    transform: rotate(90deg);
+  .toggle-close {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
   }
-  .toggle[aria-expanded="true"] .plus {
-    transform: rotate(45deg);
+  .toggle[aria-expanded="true"] .toggle-open {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+  }
+  .toggle[aria-expanded="true"] .toggle-close {
+    opacity: 1;
+    transform: none;
   }
   @media (prefers-reduced-motion: reduce) {
-    .plus {
+    .toggle,
+    .toggle-icon {
       transition: none;
     }
   }
 
-  /* le panneau : une carte bleu nuit sous le bouton, alignée à droite ; menu.ts la fait apparaître (fondu, flou) */
+  /* le panneau : une carte bleu nuit sous le bouton, alignée à droite ; menu.ts la fait monter
+     d'en bas en fondu, ses lignes à la suite */
   .menu {
     position: fixed;
-    top: calc((var(--spacing-header) + 2.75rem) / 2 + 0.5rem);
+    top: calc((var(--spacing-header) + 3rem) / 2 + 0.5rem);
     right: var(--spacing-gutter);
     z-index: 30;
     width: min(18rem, calc(100vw - 2 * var(--spacing-gutter)));
@@ -217,9 +223,11 @@ const current = (id: string) => (id === page ? "page" : undefined);
     flex-wrap: wrap;
     gap: 0 1.25rem;
   }
+  /* un petit lien du pied du menu ; la flèche des profils (Icon.astro) suit leur nom */
   .menu-small {
     display: inline-flex;
     align-items: center;
+    gap: 0.2em;
     min-height: 1.75rem;
     overflow: hidden;
     color: var(--color-muted);
