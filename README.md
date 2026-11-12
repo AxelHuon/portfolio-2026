@@ -185,7 +185,7 @@ sont pas du contenu (identité, navigation, titres des pages, contact) sont dans
   Une vague organique part de Paris et traverse les points (ils grossissent à son passage ; sur la mer, ils foncent ;
   `WAVE`) : elle bat en continu tant que la Terre est à l'écran, avec un bouton de pause en bas à droite (WCAG 2.2.2). Puis on zoome sur la France, l'axe pivotant (Paris à droite,
   l'Atlantique à gauche, `GLOBE.focus`), pendant que la section About (`homeAbout` dans `content.ts`, premier jet), blanche, monte à côté : une fiche
-  d'identité (le titre, une phrase personnelle, des lignes Location, Age, Status entre des filets, « Get in touch ») ; son texte se pose à gauche, sur l'Atlantique (en haut sur mobile) ; elle
+  d'identité (le titre, une phrase personnelle, des lignes Location, Age, Status entre des filets, « Get in touch ») ; son texte se pose à gauche, sur l'Atlantique (sur mobile : la France en haut, le texte en bas) ; elle
   recouvre la scène d'un écran, transparente, et elles repartent ensemble. Essayés et refusés : un point bleu ciel pour
   Paris, un zoom sur Paris vers une section About bleu ciel, deux anneaux fins au rythme du défilement, la Terre rangée
   dans la colonne de gauche. Le masque des terres : `node scripts/assets/globe-mask.mjs`

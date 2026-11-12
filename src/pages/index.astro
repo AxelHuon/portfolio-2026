@@ -784,8 +784,8 @@ const pad = (value: number) => String(value).padStart(2, "0");
 
   /* About : sur fond blanc, en bleu foncé ; une fiche d'identité (le titre, une phrase, des lignes, le lien). Avec la toile (data-gl « on » de .work, juste
      avant) : la section remonte d'un écran, transparente, sur la fin de la scène des projets, où l'on zoome sur la France
-     (Paris à droite) ; son texte se pose à gauche, sur l'Atlantique (en haut sur un écran étroit) ; elles repartent
-     ensemble */
+     (Paris à droite) ; son texte se pose à gauche, sur l'Atlantique (en bas sur un écran étroit, la France en haut) ;
+     elles repartent ensemble */
   .about {
     --ink: var(--color-ink);
     --ink-muted: color-mix(in srgb, var(--ink) 70%, #fff);
@@ -883,11 +883,13 @@ const pad = (value: number) => String(value).padStart(2, "0");
       grid-column: 1;
     }
   }
+  /* sur un écran étroit, la France est en haut (gl/work-canvas.ts, GLOBE.narrow) : la fiche se pose en bas, au-dessus
+     du bouton de la pause de la vague (en bas à droite) */
   @media (prefers-reduced-motion: no-preference) and (max-width: 47.999rem) {
     :global(html.js) .work[data-gl="on"] + .about {
-      align-content: start;
-      padding-top: calc(var(--spacing-header) + 1rem);
-      padding-bottom: 45svh;
+      align-content: end;
+      padding-top: 40svh;
+      padding-bottom: calc(clamp(1.25rem, 5vh, 3rem) + 3.5rem);
     }
   }
 </style>

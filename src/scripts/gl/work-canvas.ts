@@ -106,13 +106,14 @@ const REVEAL = { spread: 0.5, from: 0.86 } as const;
  * la toile presque enroulée), le fondu des cartes vers la Terre, la Terre qui se penche jusqu'à la latitude de Paris
  * (elle tourne avec les cartes et s'arrête face à Paris), puis le zoom sur la France (demande d'Axel, 12 novembre 2026,
  * après une Terre qui se rangeait à gauche : « zoome sur la France et tourne l'axe ») : avant que le texte de la section
- * About n'arrive, la Terre grossit (son rayon : radius fois la largeur de l'écran ; 1,45 jugé un peu trop zoomé) en se décalant (le centre du disque,
- * donc Paris : x et y, en part de l'écran, depuis son centre ; y vers le haut) et pivote de roll degrés autour de Paris ;
- * l'Atlantique, à l'ouest, occupe la gauche de l'écran, où la section pose son texte (en haut sur un écran étroit :
- * narrow). Sous le texte, les points s'effacent en dégradé vers le blanc pendant le zoom (clear, demande d'Axel du même
+ * About n'arrive, la Terre grossit (son rayon : radius fois la largeur de l'écran, ou son petit côté sur un écran étroit,
+ * pour qu'un téléphone tourné ne grossisse pas démesurément ; 1,45 jugé un peu trop zoomé) en se décalant (le centre du
+ * disque, donc Paris : x et y, en part de l'écran, depuis son centre ; y vers le haut) et pivote de roll degrés autour
+ * de Paris. Sur un écran large, l'Atlantique, à l'ouest, occupe la gauche, où la section pose son texte ; sur un écran
+ * étroit (narrow), la France est en haut et le texte en bas. Sous le texte, les points s'effacent en dégradé vers le blanc pendant le zoom (clear, demande d'Axel du même
  * jour : le texte n'était pas lisible sur les gros points de la mer ; puis un dégradé plus long et plus doux, les points
- * passant la moitié de l'écran) : plus aucun jusqu'à clear[0] de l'écran (en largeur, ou en hauteur depuis le haut sur
- * un écran étroit), puis de retour, peu à peu, jusqu'à clear[1] ; Paris jamais. La Terre en points (choix d'Axel sur
+ * passant la moitié de l'écran) : plus aucun jusqu'à clear[0] de l'écran (en largeur depuis la gauche, ou en hauteur
+ * depuis le bas sur un écran étroit), puis de retour, peu à peu, jusqu'à clear[1] ; Paris jamais. La Terre en points (choix d'Axel sur
  * maquettes) : un point tous les spacing degrés (0,9 : des points plus petits, retour d'Axel du 12 novembre 2026, à
  * 1,8 la France ne se reconnaissait pas), de rayon dot (part de l'écart), bleu foncé sur la terre, à ocean
  * d'opacité sur la mer ; Paris (le bleu ciel refusé, puis un point bleu foncé trop gros qui se fondait dans la France,
@@ -128,9 +129,9 @@ const GLOBE = {
   tilt: [0.46, 0.62],
   focus: [0.6, 0.84],
   wide: { radius: 1.25, x: 0.2, y: 0.02 },
-  narrow: { radius: 2, x: 0.12, y: -0.14 },
+  narrow: { radius: 2, x: 0.06, y: 0.2 },
   roll: -16,
-  clear: { wide: [0.2, 0.68], narrow: [0.3, 0.68] },
+  clear: { wide: [0.2, 0.68], narrow: [0.38, 0.66] },
   start: 0.62,
   radius: 0.3,
   scale: 0.36,
@@ -348,11 +349,12 @@ const EARTH_FRAGMENT = /* glsl */ `
     // sur la mer, la crête fonce aussi les points pâles : la vague se voit partout
     float dotAlpha = inDot * mix(mix(OCEAN, WAVE_SEA, crest), 1.0, land) * clear;
 
-    // le bord du disque s'estompe ; sous le texte de la section About (à gauche, ou en haut sur un écran étroit), les
+    // le bord du disque s'estompe ; sous le texte de la section About (à gauche, ou en bas sur un écran étroit), les
     // points s'effacent en dégradé pendant le zoom (uClear) ; Paris reste
     float limb = smoothstep(0.0, 0.22, v.z);
     vec2 screen = gl_FragCoord.xy / uViewport;
-    float along = mix(screen.x, 1.0 - screen.y, uClearVertical);
+    // depuis la gauche (écran large) ou depuis le bas (écran étroit : le texte est en bas)
+    float along = mix(screen.x, screen.y, uClearVertical);
     float keep = mix(1.0, smoothstep(uClearRange.x, uClearRange.y, along), uClear);
     float alpha = max(dotAlpha * limb * keep, inParis) * uAlpha;
     if (alpha < 0.004) discard;
@@ -611,7 +613,7 @@ export async function createWorkCanvas(options: WorkCanvasOptions): Promise<Work
     // à gauche) et pivote
     const focus = inOut(part(GLOBE.focus));
     const framing = wideScreen ? GLOBE.wide : GLOBE.narrow;
-    const zoomed = framing.radius * view.x;
+    const zoomed = framing.radius * (wideScreen ? view.x : Math.min(view.x, view.y));
     const earth = part(GLOBE.earth);
     return {
       wrap,
